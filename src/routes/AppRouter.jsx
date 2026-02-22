@@ -18,7 +18,7 @@ export function AppRouter() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/users" element={<Users />} />
-        <Route path="/papers" element={<Papers />} />
+        {/* <Route path="/papers" element={<Papers />} /> */}
         <Route path="/questions" element={<Questions />} />
         <Route path="/bookmarks" element={<Bookmarks />} />
         <Route path="/qotd" element={<QOTD />} />
