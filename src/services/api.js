@@ -1,0 +1,108 @@
+import axios from 'axios'
+import { getToken } from './authStorage'
+
+export const api = axios.create({
+  baseURL: import.meta?.env?.VITE_API_BASE_URL || 'https://fmf-backend.onrender.com',
+  timeout: 20000
+})
+
+api.interceptors.request.use((config) => {
+  const token = getToken()
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err?.response?.status === 401) {
+      localStorage.removeItem('fmf_admin_token')
+      window.location.href = '/login'
+    }
+    return Promise.reject(err)
+  }
+)
+
+// Auth
+export const loginAdmin = async (email, password) => {
+  const { data } = await api.post('/admin/auth/login', { email, password })
+  return data // { token, user }
+}
+
+// Dashboard
+export const getAdminStats = async () => {
+  const { data } = await api.get('/admin/stats')
+  return data
+}
+
+// Users
+export const listUsers = async (q = '') => {
+  const { data } = await api.get('/admin/users', { params: { q } })
+  return data
+}
+export const blockUser = async (id) => (await api.post(`/admin/users/${id}/block`)).data
+export const unblockUser = async (id) => (await api.post(`/admin/users/${id}/unblock`)).data
+export const deleteUser = async (id) => (await api.delete(`/admin/users/${id}`)).data
+export const subscribeUser = async (id) => (await api.post(`/admin/users/${id}/subscribe`)).data
+export const unsubscribeUser = async (id) => (await api.post(`/admin/users/${id}/unsubscribe`)).data
+
+// Questions
+export const createQuestion = async ({ text, year, part, answerType, answerText, answerImage }) => {
+  if (answerType === 'image' && answerImage) {
+    const form = new FormData()
+    form.append('text', text)
+    form.append('year', year)
+    form.append('part', part)
+    form.append('answerType', 'image')
+    form.append('answerImage', answerImage)
+    const { data } = await api.post('/admin/questions', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+    return data
+  } else {
+    const { data } = await api.post('/admin/questions', { text, year, part, answerType: 'text', answerText })
+    return data
+  }
+}
+export const listQuestions = async (params = {}) => (await api.get('/admin/questions', { params })).data
+export const deleteQuestion = async (id) => (await api.delete(`/admin/questions/${id}`)).data
+
+// Question of the Day
+export const setQOTD = async ({ text, answerType, answerText, answerImage }) => {
+  if (answerType === 'image' && answerImage) {
+    const form = new FormData()
+    form.append('text', text)
+    form.append('answerType', 'image')
+    form.append('answerImage', answerImage)
+    return (await api.post('/admin/qotd', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
+  }
+  return (await api.post('/admin/qotd', { text, answerType: 'text', answerText })).data
+}
+export const getQOTD = async () => (await api.get('/admin/qotd')).data
+
+// Banners
+export const uploadBanner = async (file) => {
+  const form = new FormData()
+  form.append('image', file)
+  return (await api.post('/admin/banners', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
+}
+export const listBanners = async () => (await api.get('/admin/banners')).data
+export const deleteBanner = async (id) => (await api.delete(`/admin/banners/${id}`)).data
+
+// Local mock (fallback optionally)
+export const mockApi = {
+  getStats: async () => ({
+    users: 1243,
+    questions: 43210,
+    papers: 318,
+    bookmarks: 9876
+  }),
+  listUsers: async (query = '') => {
+    const all = Array.from({ length: 25 }).map((_, i) => ({
+      id: i + 1,
+      name: `User ${i + 1}`,
+      email: `user${i + 1}@fmf.dev`,
+      blocked: i % 7 === 0,
+      subscribed: i % 3 === 0
+    }))
+    return all.filter((u) => u.name.toLowerCase().includes(query.toLowerCase()) || u.email.toLowerCase().includes(query.toLowerCase()))
+  }
+}
