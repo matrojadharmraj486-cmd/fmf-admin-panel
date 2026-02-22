@@ -5,7 +5,7 @@ import Users from '../pages/Users.jsx'
 import Papers from '../pages/Papers.jsx'
 import Questions from '../pages/Questions.jsx'
 import Bookmarks from '../pages/Bookmarks.jsx'
-import Qotd from '../pages/QOTD.jsx'
+import QOTD from '../pages/QOTD.jsx'
 import Banners from '../pages/Banners.jsx'
 import { ProtectedRoute } from '../routes/ProtectedRoute.jsx'
 import { AppLayout } from '../shared/AppLayout.jsx'
@@ -21,7 +21,7 @@ export function AppRouter() {
         <Route path="/papers" element={<Papers />} />
         <Route path="/questions" element={<Questions />} />
         <Route path="/bookmarks" element={<Bookmarks />} />
-        <Route path="/qotd" element={<Qotd />} />
+        <Route path="/qotd" element={<QOTD />} />
         <Route path="/banners" element={<Banners />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
