@@ -8,7 +8,10 @@ const TOKEN_KEY = 'fmf_admin_token'
 function parseUser(token) {
   if (!token) return null
   try {
-    const payload = JSON.parse(atob(token.split('.')[1] || '')) || {}
+    const mid = token.split('.')[1] || ''
+    const base64 = mid.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')
+    const payload = JSON.parse(atob(padded)) || {}
     return { role: payload.role || 'admin', name: payload.name || 'Administrator', email: payload.email || '' }
   } catch {
     return { role: 'admin', name: 'Administrator', email: '' }
@@ -27,12 +30,14 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     if (!email || !password) throw new Error('Missing credentials')
     // Call backend login
-    const res = await loginAdmin(email, password) // expects { token, user }
+    const res = await loginAdmin(email, password)
     const allowed = import.meta?.env?.VITE_ADMIN_EMAIL
     if (allowed && res?.user?.email && res.user.email.toLowerCase() !== allowed.toLowerCase()) {
       throw new Error('Not authorized for admin panel')
     }
-    setToken(res?.token || '')
+    const tk = res?.data?.token || res?.accessToken || res?.jwt || ''
+    if (!tk) throw new Error('Server did not return a token')
+    setToken(tk)
     return true
   }
 

@@ -17,7 +17,7 @@ export default function Login() {
     setLoading(true)
     try {
       await login(email, password)
-      const redirectTo = location.state?.from?.pathname || '/dashboard'
+      const redirectTo = '/dashboard'
       navigate(redirectTo, { replace: true })
     } catch (err) {
       setError(err?.message || 'Login failed')

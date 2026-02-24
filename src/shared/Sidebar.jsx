@@ -5,7 +5,7 @@ const nav = [
   { to: '/users', label: 'Users' },
   // { to: '/papers', label: 'Papers' },
   { to: '/questions', label: 'Questions' },
-  { to: '/bookmarks', label: 'Bookmarks' },
+  // { to: '/bookmarks', label: 'Bookmarks' },
   { to: '/qotd', label: 'QOTD' },
   { to: '/banners', label: 'Banners' }
 ]

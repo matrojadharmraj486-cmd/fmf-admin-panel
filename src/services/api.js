@@ -26,7 +26,7 @@ api.interceptors.response.use(
 // Auth
 export const loginAdmin = async (email, password) => {
   const { data } = await api.post('/admin/auth/login', { email, password })
-  return data // { token, user }
+  return data
 }
 
 // Dashboard
@@ -37,13 +37,13 @@ export const getAdminStats = async () => {
 
 // Users
 export const listUsers = async (q = '') => {
-  const { data } = await api.get('/admin/users', { params: { q } })
+  const { data } = await api.get('/api/admin/users', { params: { q } })
   return data
 }
 export const blockUser = async (id) => (await api.post(`/admin/users/${id}/block`)).data
 export const unblockUser = async (id) => (await api.post(`/admin/users/${id}/unblock`)).data
 export const deleteUser = async (id) => (await api.delete(`/admin/users/${id}`)).data
-export const subscribeUser = async (id) => (await api.post(`/admin/users/${id}/subscribe`)).data
+export const subscribeUser = async (id) => (await api.put(`/api/admin/users/${id}/subscription`)).data
 export const unsubscribeUser = async (id) => (await api.post(`/admin/users/${id}/unsubscribe`)).data
 
 // Questions
@@ -72,11 +72,11 @@ export const setQOTD = async ({ text, answerType, answerText, answerImage }) => 
     form.append('text', text)
     form.append('answerType', 'image')
     form.append('answerImage', answerImage)
-    return (await api.post('/admin/qotd', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
+    return (await api.post('/api/question-of-the-day', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
   }
-  return (await api.post('/admin/qotd', { text, answerType: 'text', answerText })).data
+  return (await api.post('/api/question-of-the-day', { text, answerType: 'text', answerText })).data
 }
-export const getQOTD = async () => (await api.get('/admin/qotd')).data
+export const getQOTD = async () => (await api.get('/api/question-of-the-day')).data
 
 // Banners
 export const uploadBanner = async (file) => {
