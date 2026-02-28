@@ -82,10 +82,10 @@ export const getQOTD = async () => (await api.get('/api/question-of-the-day')).d
 export const uploadBanner = async (file) => {
   const form = new FormData()
   form.append('image', file)
-  return (await api.post('/admin/banners', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
+  return (await api.post('/api/admin/banners', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
 }
-export const listBanners = async () => (await api.get('/admin/banners')).data
-export const deleteBanner = async (id) => (await api.delete(`/admin/banners/${id}`)).data
+export const listBanners = async () => (await api.get('/api/admin/banner')).data
+export const deleteBanner = async (id) => (await api.delete(`/api/admin/banners/${id}`)).data
 
 // Local mock (fallback optionally)
 export const mockApi = {
