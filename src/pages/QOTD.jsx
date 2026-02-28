@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getQOTD, setQOTD } from '../services/api.js'
+import { Loader } from '../shared/Loader.jsx'
 
 export default function Qotd() {
   const [loading, setLoading] = useState(true)
@@ -23,10 +24,12 @@ export default function Qotd() {
     return () => { mounted = false }
   }, [])
 
+  const [submitting, setSubmitting] = useState(false)
   const submit = async (e) => {
     e.preventDefault()
     setError('')
     try {
+      setSubmitting(true)
       const payload = {
         text: form.text,
         answerType: form.answerType,
@@ -38,13 +41,15 @@ export default function Qotd() {
       setForm({ text: '', answerType: 'text', answerText: '', answerImage: null })
     } catch {
       setError('Failed to save QOTD')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Question of the Day</h2>
-      {loading ? <div>Loading...</div> : (
+      {loading ? <Loader /> : (
         <div className="space-y-3">
           {current && (
             <div className="p-4 rounded bg-white dark:bg-gray-800 shadow">
@@ -67,7 +72,9 @@ export default function Qotd() {
           <input type="file" accept="image/*" onChange={(e) => setForm({ ...form, answerImage: e.target.files?.[0] || null })} className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 md:col-span-3" required />
         )}
         <div className="md:col-span-4">
-          <button className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700">Save QOTD</button>
+          <button disabled={submitting} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
+            {submitting ? 'Saving...' : 'Save QOTD'}
+          </button>
         </div>
       </form>
       {error && <div className="text-red-600 text-sm">{error}</div>}

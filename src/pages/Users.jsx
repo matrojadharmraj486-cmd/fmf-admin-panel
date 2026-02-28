@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { listUsers as apiList, blockUser, unblockUser, deleteUser as apiDelete, subscribeUser, unsubscribeUser } from '../services/api.js'
+import { Loader } from '../shared/Loader.jsx'
 
 export default function Users() {
   const [query, setQuery] = useState('')
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState({ id: null, action: '' })
 
   useEffect(() => {
     let mounted = true
@@ -31,32 +33,41 @@ export default function Users() {
 
   const toggleBlock = async (_id, blocked) => {
     try {
+      setBusy({ id: _id, action: 'block' })
       if (blocked) await unblockUser(_id)
       else await blockUser(_id)
       setList((prev) => prev.map((u) => (u._id === _id ? { ...u, blocked: !u.blocked } : u)))
     } catch {
       setError('Failed to update status')
+    } finally {
+      setBusy({ id: null, action: '' })
     }
   }
   const remove = async (_id) => {
     try {
+      setBusy({ id: _id, action: 'delete' })
       await apiDelete(_id)
       setList((prev) => prev.filter((u) => u._id !== _id))
     } catch {
       setError('Failed to delete user')
+    } finally {
+      setBusy({ id: null, action: '' })
     }
   }
   const toggleSub = async (_id, subscribed) => {
     try {
+      setBusy({ id: _id, action: 'sub' })
       if (subscribed) await unsubscribeUser(_id)
       else await subscribeUser(_id)
       setList((prev) => prev.map((u) => (u._id === _id ? { ...u, subscribed: !u.subscribed } : u)))
     } catch {
       setError('Failed to update subscription')
+    } finally {
+      setBusy({ id: null, action: '' })
     }
   }
 
-  if (loading) return <div>Loading...</div>
+  if (loading) return <Loader />
 
   return (
     <div className="space-y-4">
@@ -89,14 +100,14 @@ export default function Users() {
                 <td className="px-4 py-2">{u.blocked ? 'Blocked' : 'Active'}</td>
                 <td className="px-4 py-2">{u.subscribed ? 'Subscribed' : 'Unsubscribed'}</td>
                 <td className="px-4 py-2 text-right space-x-2">
-                  <button onClick={() => toggleBlock(u._id, u.blocked)} className="px-3 py-1 rounded bg-gray-900 text-white dark:bg-gray-700">
-                    {u.blocked ? 'Unblock' : 'Block'}
+                  <button disabled={busy.id === u._id} onClick={() => toggleBlock(u._id, u.blocked)} className="px-3 py-1 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
+                    {busy.id === u._id && busy.action === 'block' ? 'Updating...' : (u.blocked ? 'Unblock' : 'Block')}
                   </button>
-                  <button onClick={() => toggleSub(u._id, u.subscribed)} className="px-3 py-1 rounded bg-indigo-600 text-white">
-                    {u.subscribed ? 'Unsubscribe' : 'Subscribe'}
+                  <button disabled={busy.id === u._id} onClick={() => toggleSub(u._id, u.subscribed)} className="px-3 py-1 rounded bg-indigo-600 text-white disabled:opacity-60">
+                    {busy.id === u._id && busy.action === 'sub' ? 'Updating...' : (u.subscribed ? 'Unsubscribe' : 'Subscribe')}
                   </button>
-                  <button onClick={() => remove(u._id)} className="px-3 py-1 rounded bg-red-600 text-white">
-                    Delete
+                  <button disabled={busy.id === u._id} onClick={() => remove(u._id)} className="px-3 py-1 rounded bg-red-600 text-white disabled:opacity-60">
+                    {busy.id === u._id && busy.action === 'delete' ? 'Deleting...' : 'Delete'}
                   </button>
                 </td>
               </tr>

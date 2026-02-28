@@ -25,7 +25,7 @@ api.interceptors.response.use(
 
 // Auth
 export const loginAdmin = async (email, password) => {
-  const { data } = await api.post('/admin/auth/login', { email, password })
+  const { data } = await api.post('/api/admin/auth/login', { email, password })
   return data
 }
 
@@ -106,3 +106,25 @@ export const mockApi = {
     return all.filter((u) => u.name.toLowerCase().includes(query.toLowerCase()) || u.email.toLowerCase().includes(query.toLowerCase()))
   }
 }
+
+// Structured Questions (Admin)
+export const uploadStructuredQuestions = async ({ file, year, part }) => {
+  const form = new FormData()
+  form.append('file', file)
+  if (year) form.append('year', year)
+  if (part) form.append('part', part)
+  return (await api.post('/api/admin/questions-structured/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
+}
+export const getStructuredQuestions = async () => (await api.get('/api/admin/questions-structured')).data
+export const updateStructuredParent = async (id, payload) => (await api.put(`/api/admin/questions-structured/${id}`, payload)).data
+export const updateStructuredSub = async (id, subId, payload) => (await api.put(`/api/admin/questions-structured/${id}/sub/${subId}`, payload)).data
+export const deleteStructuredParent = async (id) => (await api.delete(`/api/admin/questions-structured/${id}`)).data
+export const deleteStructuredSub = async (id, subId) => (await api.delete(`/api/admin/questions-structured/${id}/sub/${subId}`)).data
+export const uploadStructuredSubImage = async (id, subId, file) => {
+  const form = new FormData()
+  form.append('image', file)
+  return (await api.post(`/api/admin/questions-structured/${id}/sub/${subId}/image`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
+}
+
+// Structured Questions (Public)
+export const getPublicQuestions = async (params = {}) => (await api.get('/api/questions', { params })).data

@@ -7,6 +7,8 @@ import Questions from '../pages/Questions.jsx'
 import Bookmarks from '../pages/Bookmarks.jsx'
 import QOTD from '../pages/QOTD.jsx'
 import Banners from '../pages/Banners.jsx'
+import StructuredAdmin from '../pages/StructuredAdmin.jsx'
+import PublicQuestions from '../pages/PublicQuestions.jsx'
 import { ProtectedRoute } from '../routes/ProtectedRoute.jsx'
 import { AppLayout } from '../shared/AppLayout.jsx'
 
@@ -23,6 +25,8 @@ export function AppRouter() {
         <Route path="/bookmarks" element={<Bookmarks />} />
         <Route path="/qotd" element={<QOTD />} />
         <Route path="/banners" element={<Banners />} />
+        <Route path="/structured-questions" element={<StructuredAdmin />} />
+        <Route path="/public-questions" element={<PublicQuestions />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

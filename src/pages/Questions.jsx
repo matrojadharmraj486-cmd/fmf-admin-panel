@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createQuestion, listQuestions, deleteQuestion } from '../services/api.js'
+import { Loader } from '../shared/Loader.jsx'
 
 export default function Questions() {
   const [questions, setQuestions] = useState([])
@@ -31,9 +32,11 @@ export default function Questions() {
     return () => { mounted = false }
   }, [])
 
+  const [submitting, setSubmitting] = useState(false)
   const add = async (e) => {
     e.preventDefault()
     setError('')
+    setSubmitting(true)
     try {
       const payload = {
         text: form.text,
@@ -48,6 +51,8 @@ export default function Questions() {
       setForm({ text: '', year: '', part: 'part1', subject: '', answerType: 'text', answerText: '', answerImage: null })
     } catch {
       setError('Failed to add question')
+    } finally {
+      setSubmitting(false)
     }
   }
   const remove = async (id) => {
@@ -67,10 +72,9 @@ export default function Questions() {
         <input className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 md:col-span-3" placeholder="Question text" value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} required />
         <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} required>
           <option value="">Year</option>
-          {Array.from({ length: 15 }).map((_, i) => {
-            const y = new Date().getFullYear() - i
-            return <option key={y} value={String(y)}>{y}</option>
-          })}
+          {['2027','2026','2025','2024','2023','2022'].map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
         </select>
         <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={form.part} onChange={(e) => setForm({ ...form, part: e.target.value })}>
           <option value="part1">Part 1</option>
@@ -86,12 +90,14 @@ export default function Questions() {
           <input type="file" accept="image/*" onChange={(e) => setForm({ ...form, answerImage: e.target.files?.[0] || null })} className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 md:col-span-3" required />
         )}
         <div className="md:col-span-6">
-          <button className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700">Add Question</button>
+          <button disabled={submitting} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
+            {submitting ? 'Adding...' : 'Add Question'}
+          </button>
         </div>
       </form>
       {error && <div className="text-red-600 text-sm">{error}</div>}
 
-      {loading ? <div>Loading...</div> : (
+      {loading ? <Loader /> : (
         <div className="grid gap-3">
           {questions.map((q) => (
             <div key={q.id} className="p-4 rounded bg-white dark:bg-gray-800 shadow">
