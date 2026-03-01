@@ -66,15 +66,15 @@ export const listQuestions = async (params = {}) => (await api.get('/admin/quest
 export const deleteQuestion = async (id) => (await api.delete(`/admin/questions/${id}`)).data
 
 // Question of the Day
-export const setQOTD = async ({ text, answerType, answerText, answerImage }) => {
+export const setQOTD = async ({ question, answerType, answer, answerImage }) => {
   if (answerType === 'image' && answerImage) {
     const form = new FormData()
-    form.append('text', text)
+    form.append('question', question)
     form.append('answerType', 'image')
     form.append('answerImage', answerImage)
     return (await api.post('/api/question-of-the-day', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
   }
-  return (await api.post('/api/question-of-the-day', { text, answerType: 'text', answerText })).data
+  return (await api.post('/api/question-of-the-day', { question, answerType: 'text', answer })).data
 }
 export const getQOTD = async () => (await api.get('/api/question-of-the-day')).data
 

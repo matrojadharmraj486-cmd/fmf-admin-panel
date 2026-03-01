@@ -9,7 +9,7 @@ const nav = [
   // { to: '/bookmarks', label: 'Bookmarks' },
   { to: '/qotd', label: 'QOTD' },
   { to: '/banners', label: 'Banners' },
-  { to: '/public-questions', label: 'Public' }
+  // { to: '/public-questions', label: 'Public' }
 ]
 
 export function Sidebar({ open, onClose }) {

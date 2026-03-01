@@ -30,6 +30,7 @@ export default function StructuredDetail() {
     question_text: p?.question_text || p?.questionText || p?.title || '',
     sub_questions: (Array.isArray(p?.sub_questions) ? p.sub_questions : []).map((s) => ({
       id: s?.id || s?._id || String(s?.id || s?._id || ''),
+      subDbid: s?._id || '',
       part: String(s?.part ?? ''),
       text: s?.text || s?.title || '',
       answerType: s?.answerType || (s?.answerImage ? 'image' : 'text'),
@@ -71,8 +72,8 @@ export default function StructuredDetail() {
     try {
       const saved = await updateStructuredSub(id, subId, payload)
       setList((prev) => prev.map((p) => {
-        if (p.id !== id) return p
-        const subs = (p.sub_questions || []).map((s) => s.id === subId ? { ...s, ...payload } : s)
+        if (p.dbid !== id) return p
+        const subs = (p.sub_questions || []).map((s) => (s.subDbid === subId ? { ...s, ...payload } : s))
         return { ...p, sub_questions: subs }
       }))
       setOk('Saved')
@@ -84,7 +85,7 @@ export default function StructuredDetail() {
     setError(''); setOk('')
     try {
       await deleteStructuredParent(id)
-      setList((prev) => prev.filter((p) => p.id !== id))
+      setList((prev) => prev.filter((p) => p.dbid !== id))
       setOk('Deleted')
     } catch (err) {
       setError(err?.response?.data?.message || 'Delete failed')
@@ -95,8 +96,8 @@ export default function StructuredDetail() {
     try {
       await deleteStructuredSub(id, subId)
       setList((prev) => prev.map((p) => {
-        if (p.id !== id) return p
-        const subs = (p.sub_questions || []).filter((s) => s.id !== subId)
+        if (p.dbid !== id) return p
+        const subs = (p.sub_questions || []).filter((s) => s.subDbid !== subId)
         return { ...p, sub_questions: subs }
       }))
       setOk('Deleted')
@@ -133,8 +134,8 @@ export default function StructuredDetail() {
                   <div className="text-sm text-gray-500 dark:text-gray-400">{parent.year} • {String(parent.part).toUpperCase()}</div>
                 </div>
                 <div className="space-x-2">
-                  <button onClick={() => setEditParentState({ id: parent.id, html: parent.question_text })} className="px-3 py-1 rounded bg-indigo-600 text-white">Edit</button>
-                  <button onClick={() => removeParent(parent.id)} className="px-3 py-1 rounded bg-red-600 text-white">Delete</button>
+                  <button onClick={() => setEditParentState({ id: parent.dbid, html: parent.question_text })} className="px-3 py-1 rounded bg-indigo-600 text-white">Edit</button>
+                  <button onClick={() => removeParent(parent.dbid)} className="px-3 py-1 rounded bg-red-600 text-white">Delete</button>
                 </div>
               </div>
               <div className="space-y-2">
@@ -147,12 +148,12 @@ export default function StructuredDetail() {
                       </div>
                       <div className="space-x-2">
                         <button
-                          onClick={() => setEditSubState({ pid: parent.id, sid: sub.id, html: sub.text })}
+                          onClick={() => setEditSubState({ pid: parent.dbid, sid: sub.subDbid, html: sub.text })}
                           className="px-3 py-1 rounded bg-indigo-600 text-white"
                         >
                           Edit
                         </button>
-                        <button onClick={() => removeSub(parent.id, sub.id)} className="px-3 py-1 rounded bg-red-600 text-white">Delete</button>
+                        <button onClick={() => removeSub(parent.dbid, sub.subDbid)} className="px-3 py-1 rounded bg-red-600 text-white">Delete</button>
                       </div>
                     </div>
                     <div className="mt-2">
@@ -168,31 +169,31 @@ export default function StructuredDetail() {
                     <div className="mt-3 grid md:grid-cols-3 gap-2">
                       <select
                         value={sub.answerType}
-                        onChange={(e) => editSub(parent.id, sub.id, { answerType: e.target.value })}
+                        onChange={(e) => editSub(parent.dbid, sub.subDbid, { answerType: e.target.value })}
                         className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
                       >
                         <option value="text">Text</option>
                         <option value="image">Image</option>
                       </select>
                       {sub.answerType === 'text' ? (
-                        <input
-                          placeholder="Answers (; separated)"
-                          defaultValue={Array.isArray(sub.answer) ? sub.answer.join('; ') : ''}
+                        <textarea
+                          placeholder="One answer per line"
+                          defaultValue={Array.isArray(sub.answer) ? sub.answer.join('\n') : ''}
                           onBlur={(e) => {
-                            const arr = e.target.value.split(';').map((x) => x.trim()).filter(Boolean)
-                            editSub(parent.id, sub.id, { answer: arr })
+                            const arr = e.target.value.split('\n').map((x) => x.trim()).filter(Boolean)
+                            editSub(parent.dbid, sub.subDbid, { answer: arr })
                           }}
-                          className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
+                          className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 md:col-span-2"
                         />
                       ) : (
                         <div className="flex items-center gap-2">
                           <input
                             placeholder="Image URL"
                             defaultValue={sub.answerImage || ''}
-                            onBlur={(e) => editSub(parent.id, sub.id, { answerImage: e.target.value })}
+                            onBlur={(e) => editSub(parent.dbid, sub.subDbid, { answerImage: e.target.value })}
                             className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 flex-1"
                           />
-                          <input type="file" accept="image/*" onChange={(e) => onUploadSubImage(parent.id, sub.id, e.target.files?.[0] || null)} className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
+                          <input type="file" accept="image/*" onChange={(e) => onUploadSubImage(parent.dbid, sub.subDbid, e.target.files?.[0] || null)} className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
                         </div>
                       )}
                     </div>

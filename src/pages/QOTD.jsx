@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { getQOTD, setQOTD } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
+import { RichEditor } from '../shared/RichEditor.jsx'
 
 export default function Qotd() {
   const [loading, setLoading] = useState(true)
   const [current, setCurrent] = useState(null)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ text: '', answerType: 'text', answerText: '', answerImage: null })
+  const [form, setForm] = useState({ question: '', answerType: 'text', answerHtml: '', answerImage: null })
+  const baseUrl = import.meta?.env?.VITE_API_BASE_URL || ''
+  const abs = (url) => (url && !String(url).startsWith('http') && baseUrl) ? `${baseUrl}${url}` : url
 
   useEffect(() => {
     let mounted = true
@@ -31,14 +34,14 @@ export default function Qotd() {
     try {
       setSubmitting(true)
       const payload = {
-        text: form.text,
+        question: form.question,
         answerType: form.answerType,
-        answerText: form.answerType === 'text' ? form.answerText : undefined,
+        answer: form.answerType === 'text' ? form.answerHtml : undefined,
         answerImage: form.answerType === 'image' ? form.answerImage : undefined
       }
       const saved = await setQOTD(payload)
       setCurrent(saved)
-      setForm({ text: '', answerType: 'text', answerText: '', answerImage: null })
+      setForm({ question: '', answerType: 'text', answerHtml: '', answerImage: null })
     } catch {
       setError('Failed to save QOTD')
     } finally {
@@ -53,23 +56,32 @@ export default function Qotd() {
         <div className="space-y-3">
           {current && (
             <div className="p-4 rounded bg-white dark:bg-gray-800 shadow">
-              <div className="font-medium">{current.text}</div>
-              {current.answerType === 'text' && current.answerText && <div className="mt-2 text-sm">{current.answerText}</div>}
-              {current.answerType === 'image' && current.answerImageUrl && <img alt="qotd" src={current.answerImageUrl} className="mt-2 max-h-40 object-contain" />}
+              <div className="font-medium" dangerouslySetInnerHTML={{ __html: current.question || '' }} />
+              {current.answerType === 'text' && current.answer && <div className="mt-2 text-sm" dangerouslySetInnerHTML={{ __html: current.answer }} />}
+              {current.answerType === 'image' && (current.answerImage || current.answerImageUrl) && <img alt="qotd" src={abs(current.answerImage || current.answerImageUrl)} className="mt-2 max-h-40 object-contain" />}
             </div>
           )}
         </div>
       )}
       <form onSubmit={submit} className="grid md:grid-cols-4 gap-3 bg-white dark:bg-gray-800 p-4 rounded shadow">
-        <input className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 md:col-span-4" placeholder="Question text" value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} required />
+        <div className="md:col-span-4 space-y-2">
+          <label className="block text-sm">Question</label>
+          <RichEditor value={form.question} onChange={(html) => setForm((s) => ({ ...s, question: html }))} />
+        </div>
         <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={form.answerType} onChange={(e) => setForm({ ...form, answerType: e.target.value })}>
           <option value="text">Answer Text</option>
           <option value="image">Answer Image</option>
         </select>
         {form.answerType === 'text' ? (
-          <textarea className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 md:col-span-3" placeholder="Answer text" value={form.answerText} onChange={(e) => setForm({ ...form, answerText: e.target.value })} required />
+          <div className="md:col-span-3 space-y-2">
+            <label className="block text-sm">Answer</label>
+            <RichEditor value={form.answerHtml} onChange={(html) => setForm((s) => ({ ...s, answerHtml: html }))} />
+          </div>
         ) : (
-          <input type="file" accept="image/*" onChange={(e) => setForm({ ...form, answerImage: e.target.files?.[0] || null })} className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 md:col-span-3" required />
+          <div className="md:col-span-3 space-y-2">
+            <label className="block text-sm">Answer Image</label>
+            <input type="file" accept="image/*" onChange={(e) => setForm({ ...form, answerImage: e.target.files?.[0] || null })} className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" required />
+          </div>
         )}
         <div className="md:col-span-4">
           <button disabled={submitting} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
