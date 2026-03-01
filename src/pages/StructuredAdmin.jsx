@@ -9,8 +9,10 @@ import {
   uploadStructuredSubImage
 } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
+import { useNavigate } from 'react-router-dom'
 
 export default function StructuredAdmin() {
+  const navigate = useNavigate()
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -97,10 +99,11 @@ useEffect(() => {
     if (!file) { setError('Select .xlsx file'); return }
     try {
       setUploading(true)
-      const res = await uploadStructuredQuestions({ file, year, part })
+      await uploadStructuredQuestions({ file, year, part })
       setOk('Uploaded')
-      const data = await getStructuredQuestions()
-      setList(data || [])
+      const res = await getStructuredQuestions()
+      const arr = toArray(res).map(normalize)
+      setList(arr)
       setFile(null)
     } catch (err) {
       setError(err?.response?.data?.message || 'Upload failed')
@@ -208,104 +211,14 @@ useEffect(() => {
       {ok && <div className="text-green-600 text-sm">{ok}</div>}
       {loading ? <Loader /> : (
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={year} onChange={(e) => setYear(e.target.value)}>
-              <option value="">Filter Year</option>
-              {['2027','2026','2025','2024','2023','2022'].map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-            <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={part} onChange={(e) => setPart(e.target.value)}>
-              <option value="">Filter Part</option>
-              <option value="part1">Part 1</option>
-              <option value="part2">Part 2</option>
-            </select>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Object.values(groupByYearPart(list)).map((g) => (
+              <div key={`${g.year}-${g.part}`} className="rounded bg-white dark:bg-gray-800 shadow p-4 cursor-pointer hover:shadow-md transition" onClick={() => navigate(`/structured-questions/${g.year}/${g.part}`)}>
+                <div className="font-semibold">{g.year} • {String(g.part).toUpperCase()}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">{g.countParents} parent • {g.countSubs} sub</div>
+              </div>
+            ))}
           </div>
-          {(!year || !part) && (
-            <div className="rounded bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200 p-4">
-              Select Year and Part to view structured questions.
-            </div>
-          )}
-          {year && part && filtered.map((parent) => (
-            <div key={parent.id} className="rounded bg-white dark:bg-gray-800 shadow p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{parent.question_text}</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">{parent.year} • {String(parent.part).toUpperCase?.() || parent.part}</div>
-                </div>
-                <div className="space-x-2">
-                  <button onClick={() => editParent(parent.id, { question_text: prompt('Question text', parent.question_text) || parent.question_text })} className="px-3 py-1 rounded bg-indigo-600 text-white">Edit</button>
-                  <button onClick={() => startBulkEdit(parent)} className="px-3 py-1 rounded bg-purple-600 text-white">Bulk Edit Subs</button>
-                  <button onClick={() => removeParent(parent.id)} className="px-3 py-1 rounded bg-red-600 text-white">Delete</button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {(parent.sub_questions || []).map((sub) => (
-                  <div key={sub.id} className="rounded border border-gray-200 dark:border-gray-700 p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{sub.text}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{String(sub.part).toUpperCase?.() || sub.part} • {sub.answerType}</div>
-                      </div>
-                      <div className="space-x-2">
-                        <button
-                          onClick={() => {
-                            const val = prompt('Text', sub.text) || sub.text
-                            editSub(parent.id, sub.id, { text: val })
-                          }}
-                          className="px-3 py-1 rounded bg-indigo-600 text-white"
-                        >
-                          Edit
-                        </button>
-                        <button onClick={() => removeSub(parent.id, sub.id)} className="px-3 py-1 rounded bg-red-600 text-white">Delete</button>
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      {sub.answerType === 'text' && Array.isArray(sub.answer) && (
-                        <ul className="list-disc ml-5">
-                          {sub.answer.map((a, idx) => <li key={idx}>{a}</li>)}
-                        </ul>
-                      )}
-                      {sub.answerType === 'image' && sub.answerImage && (
-                        <img src={sub.answerImage} alt="answer" className="mt-2 max-h-40 object-contain rounded border border-gray-200 dark:border-gray-700" />
-                      )}
-                    </div>
-                    <div className="mt-3 grid md:grid-cols-3 gap-2">
-                      <select
-                        value={sub.answerType}
-                        onChange={(e) => editSub(parent.id, sub.id, { answerType: e.target.value })}
-                        className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
-                      >
-                        <option value="text">Text</option>
-                        <option value="image">Image</option>
-                      </select>
-                      {sub.answerType === 'text' ? (
-                        <input
-                          placeholder="Answers (; separated)"
-                          defaultValue={Array.isArray(sub.answer) ? sub.answer.join('; ') : ''}
-                          onBlur={(e) => {
-                            const arr = e.target.value.split(';').map((x) => x.trim()).filter(Boolean)
-                            editSub(parent.id, sub.id, { answer: arr })
-                          }}
-                          className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
-                        />
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <input
-                            placeholder="Image URL"
-                            defaultValue={sub.answerImage || ''}
-                            onBlur={(e) => editSub(parent.id, sub.id, { answerImage: e.target.value })}
-                            className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 flex-1"
-                          />
-                          <input type="file" accept="image/*" onChange={(e) => onUploadSubImage(parent.id, sub.id, e.target.files?.[0] || null)} className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
         </div>
       )}
       {bulkEdit.id && (
@@ -326,4 +239,15 @@ useEffect(() => {
       )}
     </div>
   )
+}
+
+function groupByYearPart(list) {
+  const map = {}
+  for (const p of list) {
+    const key = `${p.year}-${p.part}`
+    if (!map[key]) map[key] = { year: p.year, part: p.part, countParents: 0, countSubs: 0 }
+    map[key].countParents += 1
+    map[key].countSubs += (Array.isArray(p.sub_questions) ? p.sub_questions.length : 0)
+  }
+  return map
 }

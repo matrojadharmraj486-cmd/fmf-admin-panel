@@ -47,7 +47,8 @@ export default function Questions() {
         answerImage: form.answerType === 'image' ? form.answerImage : undefined
       }
       const created = await createQuestion(payload)
-      setQuestions((prev) => [created, ...prev])
+      const item = Array.isArray(created) ? created[0] : created
+      setQuestions((prev) => [item, ...prev])
       setForm({ text: '', year: '', part: 'part1', subject: '', answerType: 'text', answerText: '', answerImage: null })
     } catch {
       setError('Failed to add question')
@@ -55,10 +56,10 @@ export default function Questions() {
       setSubmitting(false)
     }
   }
-  const remove = async (id) => {
+  const remove = async (_id) => {
     try {
-      await deleteQuestion(id)
-      setQuestions((q) => q.filter((x) => x.id !== id))
+      await deleteQuestion(_id)
+      setQuestions((q) => q.filter((x) => (x._id || x.id) !== _id))
     } catch {
       setError('Failed to delete question')
     }
@@ -100,7 +101,7 @@ export default function Questions() {
       {loading ? <Loader /> : (
         <div className="grid gap-3">
           {questions.map((q) => (
-            <div key={q.id} className="p-4 rounded bg-white dark:bg-gray-800 shadow">
+            <div key={q._id || q.id} className="p-4 rounded bg-white dark:bg-gray-800 shadow">
               <div className="font-medium">{q.text}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400">{q.part?.toUpperCase?.() || 'Part'} • {q.year}</div>
               {q.answerType === 'image' && q.answerImageUrl && (
@@ -110,7 +111,7 @@ export default function Questions() {
                 <div className="mt-2 text-sm">{q.answerText}</div>
               )}
               <div className="mt-2">
-                <button onClick={() => remove(q.id)} className="px-3 py-1 rounded bg-red-600 text-white">Delete</button>
+                <button onClick={() => remove(q._id || q.id)} className="px-3 py-1 rounded bg-red-600 text-white">Delete</button>
               </div>
             </div>
           ))}

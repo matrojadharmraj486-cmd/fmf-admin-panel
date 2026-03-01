@@ -3,12 +3,12 @@ import { NavLink } from 'react-router-dom'
 const nav = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/users', label: 'Users' },
+  { to: '/structured-questions', label: 'Questions' },
   // { to: '/papers', label: 'Papers' },
-  { to: '/questions', label: 'Questions' },
+  // { to: '/questions', label: 'Questions' },
   // { to: '/bookmarks', label: 'Bookmarks' },
   { to: '/qotd', label: 'QOTD' },
   { to: '/banners', label: 'Banners' },
-  { to: '/structured-questions', label: 'Structured' },
   { to: '/public-questions', label: 'Public' }
 ]
 
