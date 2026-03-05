@@ -9,7 +9,14 @@ export default function Qotd() {
   const [error, setError] = useState('')
   const [form, setForm] = useState({ question: '', answerType: 'text', answerHtml: '', answerImage: null })
   const baseUrl = import.meta?.env?.VITE_API_BASE_URL || ''
-  const abs = (url) => (url && !String(url).startsWith('http') && baseUrl) ? `${baseUrl}${url}` : url
+  const abs = (url) => {
+    if (!url) return ''
+    const s = String(url)
+    if (s.startsWith('http')) return s
+    const base = String(baseUrl).replace(/\/+$/, '')
+    const path = s.startsWith('/') ? s : `/${s}`
+    return `${base}${path}`
+  }
 
   useEffect(() => {
     let mounted = true

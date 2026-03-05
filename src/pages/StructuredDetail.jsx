@@ -1,15 +1,21 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   getStructuredQuestionsFiltered,
   updateStructuredParent,
   updateStructuredSub,
   deleteStructuredParent,
-  deleteStructuredSub,
   uploadStructuredSubImage
 } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
 import { RichEditor } from '../shared/RichEditor.jsx'
+
+const emptyEditState = {
+  open: false,
+  pid: null,
+  questionHtml: '',
+  subs: []
+}
 
 export default function StructuredDetail() {
   const { year, part } = useParams()
@@ -17,24 +23,39 @@ export default function StructuredDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
-  const [editParentState, setEditParentState] = useState({ id: null, html: '' })
-  const [editSubState, setEditSubState] = useState({ pid: null, sid: null, html: '' })
+  const [saving, setSaving] = useState(false)
+  const [editState, setEditState] = useState(emptyEditState)
 
   const baseUrl = import.meta?.env?.VITE_API_BASE_URL || ''
-  const abs = (url) => (url && !String(url).startsWith('http') && baseUrl) ? `${baseUrl}${url}` : url
+  const abs = (url) => {
+    if (!url) return ''
+    const s = String(url)
+    if (s.startsWith('http')) return s
+    const base = String(baseUrl).replace(/\/+$/, '')
+    const path = s.startsWith('/') ? s : `/${s}`
+    return `${base}${path}`
+  }
+
+  const answerArrayToHtml = (arr) => {
+    if (!Array.isArray(arr) || arr.length === 0) return ''
+    if (arr.length === 1) return arr[0] || ''
+    return `<ul>${arr.map((a) => `<li>${a || ''}</li>`).join('')}</ul>`
+  }
+
   const norm = (p) => ({
     id: p?.id || p?._id || String(p?.id || p?._id || ''),
-    dbid: p?._id || '',
+    dbid: p?._id || p?.id || '',
     year: String(p?.year ?? ''),
     part: String(p?.part ?? '').toLowerCase().includes('2') ? 'part2' : 'part1',
     question_text: p?.question_text || p?.questionText || p?.title || '',
     sub_questions: (Array.isArray(p?.sub_questions) ? p.sub_questions : []).map((s) => ({
       id: s?.id || s?._id || String(s?.id || s?._id || ''),
-      subDbid: s?._id || '',
+      subDbid: s?._id || s?.id || '',
       part: String(s?.part ?? ''),
       text: s?.text || s?.title || '',
       answerType: s?.answerType || (s?.answerImage ? 'image' : 'text'),
       answer: Array.isArray(s?.answer) ? s.answer : [],
+      answerHtml: answerArrayToHtml(Array.isArray(s?.answer) ? s.answer : []),
       answerImage: abs(s?.answerImage || '')
     }))
   })
@@ -44,7 +65,7 @@ export default function StructuredDetail() {
     const load = async () => {
       try {
         const res = await getStructuredQuestionsFiltered(year, part)
-        const data = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+        const data = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : []
         const arr = data.map(norm)
         if (mounted) setList(arr)
       } catch (e) {
@@ -58,31 +79,28 @@ export default function StructuredDetail() {
   }, [year, part])
 
   const editParent = async (id, payload) => {
-    setError(''); setOk('')
-    try {
-      const saved = await updateStructuredParent(id, payload)
-      setList((prev) => prev.map((p) => (p.id === id ? { ...p, ...payload } : p)))
-      setOk('Saved')
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Save failed')
-    }
+    await updateStructuredParent(id, payload)
+    setList((prev) => prev.map((p) => (p.dbid === id ? { ...p, ...payload } : p)))
   }
+
   const editSub = async (id, subId, payload) => {
-    setError(''); setOk('')
-    try {
-      const saved = await updateStructuredSub(id, subId, payload)
-      setList((prev) => prev.map((p) => {
-        if (p.dbid !== id) return p
-        const subs = (p.sub_questions || []).map((s) => (s.subDbid === subId ? { ...s, ...payload } : s))
-        return { ...p, sub_questions: subs }
-      }))
-      setOk('Saved')
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Save failed')
-    }
+    await updateStructuredSub(id, subId, payload)
+    setList((prev) => prev.map((p) => {
+      if (p.dbid !== id) return p
+      const subs = (p.sub_questions || []).map((s) => {
+        if (s.subDbid !== subId) return s
+        const next = { ...s, ...payload }
+        if (payload.answerType === 'text') next.answerHtml = answerArrayToHtml(payload.answer || [])
+        if (payload.answerType === 'image') next.answerImage = payload.answerImage || ''
+        return next
+      })
+      return { ...p, sub_questions: subs }
+    }))
   }
+
   const removeParent = async (id) => {
-    setError(''); setOk('')
+    setError('')
+    setOk('')
     try {
       await deleteStructuredParent(id)
       setList((prev) => prev.filter((p) => p.dbid !== id))
@@ -91,110 +109,114 @@ export default function StructuredDetail() {
       setError(err?.response?.data?.message || 'Delete failed')
     }
   }
-  const removeSub = async (id, subId) => {
-    setError(''); setOk('')
-    try {
-      await deleteStructuredSub(id, subId)
-      setList((prev) => prev.map((p) => {
-        if (p.dbid !== id) return p
-        const subs = (p.sub_questions || []).filter((s) => s.subDbid !== subId)
-        return { ...p, sub_questions: subs }
-      }))
-      setOk('Deleted')
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Delete failed')
-    }
+
+  const htmlToArray = (html) => {
+    const container = document.createElement('div')
+    container.innerHTML = html || ''
+    const items = Array.from(container.querySelectorAll('li')).map((el) => el.innerHTML?.trim()).filter(Boolean)
+    const arr = items.length ? items : (container.innerHTML || '').split('<br>').map((t) => t.trim()).filter(Boolean)
+    return arr
   }
-  const onUploadSubImage = async (id, subId, file) => {
-    setError(''); setOk('')
-    if (!file) return
+
+  const startEdit = (parent) => {
+    setEditState({
+      open: true,
+      pid: parent.dbid,
+      questionHtml: parent.question_text || '',
+      subs: (parent.sub_questions || []).map((s) => ({
+        sid: s.subDbid || s.id,
+        part: s.part || '',
+        textHtml: s.text || '',
+        answerType: s.answerType || 'text',
+        answerHtml: s.answerHtml || '',
+        answerImageUrl: s.answerImage || '',
+        answerImageFile: null
+      }))
+    })
+  }
+
+  const closeEdit = () => {
+    setEditState(emptyEditState)
+  }
+
+  const updateEditSub = (sid, patch) => {
+    setEditState((prev) => ({
+      ...prev,
+      subs: prev.subs.map((s) => (s.sid === sid ? { ...s, ...patch } : s))
+    }))
+  }
+
+  const saveEdit = async () => {
+    if (!editState.pid) return
+    setError('')
+    setOk('')
+    setSaving(true)
     try {
-      const res = await uploadStructuredSubImage(id, subId, file)
-      const url = res?.url || res?.imageUrl || res?.absoluteUrl
-      if (url) await editSub(id, subId, { answerType: 'image', answerImage: url })
+      await editParent(editState.pid, { question_text: editState.questionHtml })
+      for (const sub of editState.subs) {
+        const payload = { text: sub.textHtml, answerType: sub.answerType }
+        if (sub.answerType === 'text') {
+          payload.answer = htmlToArray(sub.answerHtml)
+        } else {
+          let url = sub.answerImageUrl
+          if (sub.answerImageFile) {
+            const up = await uploadStructuredSubImage(editState.pid, sub.sid, sub.answerImageFile)
+            url = up?.url || up?.imageUrl || up?.absoluteUrl || url
+          }
+          payload.answerImage = url
+        }
+        await editSub(editState.pid, sub.sid, payload)
+      }
+      setOk('Saved')
+      closeEdit()
     } catch (err) {
-      setError(err?.response?.data?.message || 'Image upload failed')
+      setError(err?.response?.data?.message || 'Save failed')
+    } finally {
+      setSaving(false)
     }
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Structured • {year} • {String(part).toUpperCase()}</h2>
+        <h2 className="text-xl font-semibold">Structured | {year} | {String(part).toUpperCase()}</h2>
       </div>
+
       {error && <div className="text-red-600 text-sm">{error}</div>}
       {ok && <div className="text-green-600 text-sm">{ok}</div>}
+
       {loading ? <Loader /> : (
         <div className="space-y-4">
           {list.map((parent, pIdx) => (
-            <div key={parent.dbid || `${parent.id}-${pIdx}`} className="rounded bg-white dark:bg-gray-800 shadow p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium" dangerouslySetInnerHTML={{ __html: parent.question_text }} />
-                  <div className="text-sm text-gray-500 dark:text-gray-400">{parent.year} • {String(parent.part).toUpperCase()}</div>
+            <div key={parent.dbid || `${parent.id}-${pIdx}`} className="rounded-xl bg-white dark:bg-gray-800 shadow p-5 space-y-4 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="font-semibold text-lg leading-7" dangerouslySetInnerHTML={{ __html: parent.question_text }} />
+                  <div className="text-sm text-gray-500 dark:text-gray-400">{parent.year} | {String(parent.part).toUpperCase()}</div>
                 </div>
-                <div className="space-x-2">
-                  <button onClick={() => setEditParentState({ id: parent.dbid, html: parent.question_text })} className="px-3 py-1 rounded bg-indigo-600 text-white">Edit</button>
-                  <button onClick={() => removeParent(parent.dbid)} className="px-3 py-1 rounded bg-red-600 text-white">Delete</button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => startEdit(parent)} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">Edit</button>
+                  <button onClick={() => removeParent(parent.dbid)} className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">Delete</button>
                 </div>
               </div>
-              <div className="space-y-2">
+
+              <div className="space-y-3">
                 {(parent.sub_questions || []).map((sub, sIdx) => (
-                  <div key={`${sub.id}-${sIdx}`} className="rounded border border-gray-200 dark:border-gray-700 p-3">
-                    <div className="flex items-center justify-between">
+                  <div key={`${sub.id}-${sIdx}`} className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/40">
+                    <div className="flex items-center justify-between gap-3">
                       <div>
                         <div className="font-medium" dangerouslySetInnerHTML={{ __html: sub.text }} />
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{String(sub.part).toUpperCase()} • {sub.answerType}</div>
-                      </div>
-                      <div className="space-x-2">
-                        <button
-                          onClick={() => setEditSubState({ pid: parent.dbid, sid: sub.subDbid, html: sub.text })}
-                          className="px-3 py-1 rounded bg-indigo-600 text-white"
-                        >
-                          Edit
-                        </button>
-                        <button onClick={() => removeSub(parent.dbid, sub.subDbid)} className="px-3 py-1 rounded bg-red-600 text-white">Delete</button>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">{String(sub.part).toUpperCase()} | {sub.answerType}</div>
                       </div>
                     </div>
                     <div className="mt-2">
                       {sub.answerType === 'text' && Array.isArray(sub.answer) && (
-                        <ul className="list-disc ml-5">
-                          {sub.answer.map((a, idx) => <li key={idx}>{a}</li>)}
+                        <ul className="list-disc ml-5 space-y-1">
+                          {sub.answer.map((a, idx) => <li key={idx} dangerouslySetInnerHTML={{ __html: a }} />)}
                         </ul>
                       )}
                       {sub.answerType === 'image' && sub.answerImage && (
-                        <img src={sub.answerImage} alt="answer" className="mt-2 max-h-40 object-contain rounded border border-gray-200 dark:border-gray-700" />
-                      )}
-                    </div>
-                    <div className="mt-3 grid md:grid-cols-3 gap-2">
-                      <select
-                        value={sub.answerType}
-                        onChange={(e) => editSub(parent.dbid, sub.subDbid, { answerType: e.target.value })}
-                        className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
-                      >
-                        <option value="text">Text</option>
-                        <option value="image">Image</option>
-                      </select>
-                      {sub.answerType === 'text' ? (
-                        <textarea
-                          placeholder="One answer per line"
-                          defaultValue={Array.isArray(sub.answer) ? sub.answer.join('\n') : ''}
-                          onBlur={(e) => {
-                            const arr = e.target.value.split('\n').map((x) => x.trim()).filter(Boolean)
-                            editSub(parent.dbid, sub.subDbid, { answer: arr })
-                          }}
-                          className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 md:col-span-2"
-                        />
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <input
-                            placeholder="Image URL"
-                            defaultValue={sub.answerImage || ''}
-                            onBlur={(e) => editSub(parent.dbid, sub.subDbid, { answerImage: e.target.value })}
-                            className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 flex-1"
-                          />
-                          <input type="file" accept="image/*" onChange={(e) => onUploadSubImage(parent.dbid, sub.subDbid, e.target.files?.[0] || null)} className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
-                        </div>
+                        <img src={sub.answerImage} alt="answer" className="mt-2 max-h-48 object-contain rounded border border-gray-200 dark:border-gray-700" />
                       )}
                     </div>
                   </div>
@@ -204,26 +226,72 @@ export default function StructuredDetail() {
           ))}
         </div>
       )}
-      {editParentState.id && (
+
+      {editState.open && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded shadow w-full max-w-xl p-4 space-y-3">
-            <div className="font-medium">Edit Question</div>
-            <RichEditor value={editParentState.html} onChange={(html) => setEditParentState((s) => ({ ...s, html }))} />
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setEditParentState({ id: null, html: '' })} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
-              <button onClick={async () => { await editParent(editParentState.id, { question_text: editParentState.html }); setEditParentState({ id: null, html: '' }) }} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700">Save</button>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-5xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="font-semibold text-lg">Edit Question and Answers</div>
+
+            <div className="space-y-2">
+              <label className="block text-sm">Question</label>
+              <RichEditor value={editState.questionHtml} onChange={(html) => setEditState((s) => ({ ...s, questionHtml: html }))} />
             </div>
-          </div>
-        </div>
-      )}
-      {editSubState.sid && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded shadow w-full max-w-xl p-4 space-y-3">
-            <div className="font-medium">Edit Sub-question</div>
-            <RichEditor value={editSubState.html} onChange={(html) => setEditSubState((s) => ({ ...s, html }))} />
+
+            <div className="space-y-4">
+              {editState.subs.map((sub, index) => (
+                <div key={sub.sid || index} className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                  <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Sub Question {index + 1}</div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm">Sub Question Text</label>
+                    <RichEditor value={sub.textHtml} onChange={(html) => updateEditSub(sub.sid, { textHtml: html })} />
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                      <label className="block text-sm">Answer Type</label>
+                      <select
+                        value={sub.answerType}
+                        onChange={(e) => updateEditSub(sub.sid, { answerType: e.target.value })}
+                        className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                      >
+                        <option value="text">Text</option>
+                        <option value="image">Image</option>
+                      </select>
+                    </div>
+
+                    {sub.answerType === 'text' ? (
+                      <div className="md:col-span-2 space-y-2">
+                        <label className="block text-sm">Answer</label>
+                        <RichEditor value={sub.answerHtml} onChange={(html) => updateEditSub(sub.sid, { answerHtml: html })} />
+                      </div>
+                    ) : (
+                      <div className="md:col-span-2 space-y-2">
+                        <label className="block text-sm">Answer Image</label>
+                        <input
+                          placeholder="Image URL"
+                          value={sub.answerImageUrl}
+                          onChange={(e) => updateEditSub(sub.sid, { answerImageUrl: e.target.value })}
+                          className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => updateEditSub(sub.sid, { answerImageFile: e.target.files?.[0] || null })}
+                          className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setEditSubState({ pid: null, sid: null, html: '' })} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
-              <button onClick={async () => { await editSub(editSubState.pid, editSubState.sid, { text: editSubState.html }); setEditSubState({ pid: null, sid: null, html: '' }) }} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700">Save</button>
+              <button onClick={closeEdit} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
+              <button disabled={saving} onClick={saveEdit} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
+                {saving ? 'Saving...' : 'Save'}
+              </button>
             </div>
           </div>
         </div>
