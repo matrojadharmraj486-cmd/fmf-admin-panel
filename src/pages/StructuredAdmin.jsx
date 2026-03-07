@@ -1,15 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   uploadStructuredQuestions,
+  createStructuredQuestion,
   getStructuredQuestions,
-  updateStructuredParent,
-  updateStructuredSub,
-  deleteStructuredParent,
-  deleteStructuredSub,
-  uploadStructuredSubImage
+  uploadEditorImage
 } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
 import { useNavigate } from 'react-router-dom'
+import { RichEditor } from '../shared/RichEditor.jsx'
 
 export default function StructuredAdmin() {
   const navigate = useNavigate()
@@ -20,7 +18,18 @@ export default function StructuredAdmin() {
   const [file, setFile] = useState(null)
   const [year, setYear] = useState(localStorage.getItem('sq_year') || '')
   const [part, setPart] = useState(localStorage.getItem('sq_part') || '')
-  const [bulkEdit, setBulkEdit] = useState({ id: null, text: '' })
+  const [createOpen, setCreateOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    year: localStorage.getItem('sq_year') || '',
+    part: localStorage.getItem('sq_part') || 'part1',
+    questionHtml: '',
+    subPart: 'a',
+    subQuestionHtml: '',
+    answerType: 'text',
+    answerHtml: '',
+    answerImageUrl: ''
+  })
   const toArray = (x) => Array.isArray(x) ? x : Array.isArray(x?.data) ? x.data : Array.isArray(x?.data?.data) ? x.data.data : []
   const baseUrl = import.meta?.env?.VITE_API_BASE_URL || ''
   const canonicalPart = (val) => {
@@ -84,15 +93,15 @@ useEffect(() => {
     localStorage.setItem('sq_part', part)
   }, [part])
 
-  const filtered = useMemo(() => {
-    return list.filter((p) => {
-      const byYear = year ? String(p.year) === String(year) : true
-      const byPart = part ? String(p.part).toLowerCase() === String(part).toLowerCase() : true
-      return byYear && byPart
-    })
-  }, [list, year, part])
-
   const [uploading, setUploading] = useState(false)
+  const htmlToArray = (html) => {
+    const container = document.createElement('div')
+    container.innerHTML = html || ''
+    const items = Array.from(container.querySelectorAll('li')).map((el) => el.innerHTML?.trim()).filter(Boolean)
+    const arr = items.length ? items : (container.innerHTML || '').split('<br>').map((t) => t.trim()).filter(Boolean)
+    return arr
+  }
+
   const onUpload = async (e) => {
     e.preventDefault()
     setError(''); setOk('')
@@ -112,84 +121,94 @@ useEffect(() => {
     }
   }
 
-  const editParent = async (id, payload) => {
-    setError(''); setOk('')
-    try {
-      const saved = await updateStructuredParent(id, payload)
-      setList((prev) => prev.map((p) => (p.id === id ? saved : p)))
-      setOk('Saved')
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Save failed')
-    }
-  }
-  const editSub = async (id, subId, payload) => {
-    setError(''); setOk('')
-    try {
-      const saved = await updateStructuredSub(id, subId, payload)
-      setList((prev) => prev.map((p) => {
-        if (p.id !== id) return p
-        const subs = (p.sub_questions || []).map((s) => s.id === subId ? saved : s)
-        return { ...p, sub_questions: subs }
-      }))
-      setOk('Saved')
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Save failed')
-    }
-  }
-  const removeParent = async (id) => {
-    setError(''); setOk('')
-    try {
-      await deleteStructuredParent(id)
-      setList((prev) => prev.filter((p) => p.id !== id))
-      setOk('Deleted')
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Delete failed')
-    }
-  }
-  const removeSub = async (id, subId) => {
-    setError(''); setOk('')
-    try {
-      await deleteStructuredSub(id, subId)
-      setList((prev) => prev.map((p) => {
-        if (p.id !== id) return p
-        const subs = (p.sub_questions || []).filter((s) => s.id !== subId)
-        return { ...p, sub_questions: subs }
-      }))
-      setOk('Deleted')
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Delete failed')
-    }
+  const openCreateModal = () => {
+    setError('')
+    setOk('')
+    setCreateForm({
+      year: year || localStorage.getItem('sq_year') || '',
+      part: part || localStorage.getItem('sq_part') || 'part1',
+      questionHtml: '',
+      subPart: 'a',
+      subQuestionHtml: '',
+      answerType: 'text',
+      answerHtml: '',
+      answerImageUrl: ''
+    })
+    setCreateOpen(true)
   }
 
-  const onUploadSubImage = async (id, subId, file) => {
-    setError(''); setOk('')
+  const closeCreateModal = () => setCreateOpen(false)
+
+  const uploadImageForCreate = async (file) => {
     if (!file) return
+    setError('')
+    setOk('')
     try {
-      const res = await uploadStructuredSubImage(id, subId, file)
+      const res = await uploadEditorImage(file)
       const url = res?.url || res?.imageUrl || res?.absoluteUrl
-      if (url) await editSub(id, subId, { answerType: 'image', answerImage: url })
+      if (url) setCreateForm((prev) => ({ ...prev, answerImageUrl: url }))
     } catch (err) {
       setError(err?.response?.data?.message || 'Image upload failed')
     }
   }
 
-  const startBulkEdit = (parent) => {
-    const text = JSON.stringify(parent?.sub_questions || [], null, 2)
-    setBulkEdit({ id: parent.id, text })
-  }
-  const saveBulkEdit = async () => {
+  const onCreateSingleQuestion = async () => {
+    setError('')
+    setOk('')
+    if (!createForm.year) {
+      setError('Please select year')
+      return
+    }
+    if (!createForm.questionHtml.trim()) {
+      setError('Please enter question')
+      return
+    }
+    if (!createForm.subQuestionHtml.trim()) {
+      setError('Please enter sub question')
+      return
+    }
+    if (createForm.answerType === 'text' && !createForm.answerHtml.trim()) {
+      setError('Please enter answer')
+      return
+    }
+    if (createForm.answerType === 'image' && !createForm.answerImageUrl.trim()) {
+      setError('Please add answer image URL or upload image')
+      return
+    }
+    const payload = {
+      year: Number(createForm.year),
+      part: createForm.part === 'part2' ? 'Part 2' : 'Part 1',
+      question_text: createForm.questionHtml,
+      sub_questions: [{
+        part: createForm.subPart || 'a',
+        text: createForm.subQuestionHtml,
+        answerType: createForm.answerType,
+        answer: createForm.answerType === 'text' ? htmlToArray(createForm.answerHtml) : [],
+        answerImage: createForm.answerType === 'image' ? createForm.answerImageUrl : ''
+      }]
+    }
     try {
-      const arr = JSON.parse(bulkEdit.text)
-      await editParent(bulkEdit.id, { sub_questions: arr })
-      setBulkEdit({ id: null, text: '' })
+      setCreating(true)
+      await createStructuredQuestion(payload)
+      const res = await getStructuredQuestions()
+      setList(toArray(res).map(normalize))
+      setOk('Question added')
+      setCreateOpen(false)
     } catch (err) {
-      setError('Invalid JSON or save failed')
+      setError(err?.response?.data?.message || 'Create failed')
+    } finally {
+      setCreating(false)
     }
   }
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Structured Questions</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold">Structured Questions</h2>
+        <button onClick={openCreateModal} className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700">
+          Add Question
+        </button>
+      </div>
       <form onSubmit={onUpload} className="grid md:grid-cols-4 gap-3 bg-white dark:bg-gray-800 p-4 rounded shadow">
         <input type="file" accept=".xlsx" onChange={(e) => setFile(e.target.files?.[0] || null)} className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
         <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={year} onChange={(e) => setYear(e.target.value)}>
@@ -221,18 +240,81 @@ useEffect(() => {
           </div>
         </div>
       )}
-      {bulkEdit.id && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded shadow w-full max-w-2xl p-4 space-y-3">
-            <div className="font-medium">Bulk Edit Sub Questions JSON</div>
-            <textarea
-              value={bulkEdit.text}
-              onChange={(e) => setBulkEdit({ ...bulkEdit, text: e.target.value })}
-              className="w-full h-64 rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
-            />
+      {createOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-5xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="font-semibold text-lg">Add Structured Question</div>
+            <div className="grid md:grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <label className="block text-sm">Year</label>
+                <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.year} onChange={(e) => setCreateForm((s) => ({ ...s, year: e.target.value }))}>
+                  <option value="">Select year</option>
+                  {['2027','2026','2025','2024','2023','2022'].map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm">Part</label>
+                <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.part} onChange={(e) => setCreateForm((s) => ({ ...s, part: e.target.value }))}>
+                  <option value="part1">Part 1</option>
+                  <option value="part2">Part 2</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm">Sub Part</label>
+                <input
+                  className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                  value={createForm.subPart}
+                  onChange={(e) => setCreateForm((s) => ({ ...s, subPart: e.target.value }))}
+                  placeholder="a"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm">Question</label>
+              <RichEditor value={createForm.questionHtml} onChange={(html) => setCreateForm((s) => ({ ...s, questionHtml: html }))} />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm">Sub Question</label>
+              <RichEditor value={createForm.subQuestionHtml} onChange={(html) => setCreateForm((s) => ({ ...s, subQuestionHtml: html }))} />
+            </div>
+            <div className="grid md:grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <label className="block text-sm">Answer Type</label>
+                <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.answerType} onChange={(e) => setCreateForm((s) => ({ ...s, answerType: e.target.value }))}>
+                  <option value="text">Text</option>
+                  <option value="image">Image</option>
+                </select>
+              </div>
+              {createForm.answerType === 'text' ? (
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-sm">Answer</label>
+                  <RichEditor value={createForm.answerHtml} onChange={(html) => setCreateForm((s) => ({ ...s, answerHtml: html }))} />
+                </div>
+              ) : (
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-sm">Answer Image</label>
+                  <input
+                    className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                    value={createForm.answerImageUrl}
+                    onChange={(e) => setCreateForm((s) => ({ ...s, answerImageUrl: e.target.value }))}
+                    placeholder="https://..."
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                    onChange={(e) => uploadImageForCreate(e.target.files?.[0] || null)}
+                  />
+                </div>
+              )}
+            </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setBulkEdit({ id: null, text: '' })} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
-              <button onClick={saveBulkEdit} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700">Save</button>
+              <button onClick={closeCreateModal} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
+              <button disabled={creating} onClick={onCreateSingleQuestion} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
+                {creating ? 'Adding...' : 'Add Question'}
+              </button>
             </div>
           </div>
         </div>
