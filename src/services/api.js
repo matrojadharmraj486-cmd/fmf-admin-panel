@@ -115,6 +115,7 @@ export const uploadStructuredQuestions = async ({ file, year, part }) => {
   if (part) form.append('part', part)
   return (await api.post('/api/admin/questions-structured/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
 }
+export const createStructuredQuestion = async (payload) => (await api.post('/api/admin/questions-structured', payload)).data
 export const getStructuredQuestions = async () => (await api.get('/api/admin/questions-structured')).data
 export const getStructuredQuestionsFiltered = async (year, part) => {
   const partParam = String(part || '').toLowerCase().includes('2') ? 'Part 2' : 'Part 1'
