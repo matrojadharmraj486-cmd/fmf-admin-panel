@@ -24,7 +24,9 @@ export default function StructuredDetail() {
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [editState, setEditState] = useState(emptyEditState)
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null, title: '' })
 
   const baseUrl = import.meta?.env?.VITE_API_BASE_URL || ''
   const abs = (url) => {
@@ -101,13 +103,35 @@ export default function StructuredDetail() {
   const removeParent = async (id) => {
     setError('')
     setOk('')
+    setDeleting(true)
     try {
       await deleteStructuredParent(id)
       setList((prev) => prev.filter((p) => p.dbid !== id))
       setOk('Deleted')
     } catch (err) {
       setError(err?.response?.data?.message || 'Delete failed')
+    } finally {
+      setDeleting(false)
     }
+  }
+
+  const openDeleteConfirm = (parent) => {
+    const text = String(parent?.question_text || '').replace(/<[^>]*>/g, '').trim()
+    setDeleteConfirm({
+      open: true,
+      id: parent?.dbid || parent?.id || null,
+      title: text || 'this question'
+    })
+  }
+
+  const closeDeleteConfirm = () => {
+    setDeleteConfirm({ open: false, id: null, title: '' })
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.id) return
+    await removeParent(deleteConfirm.id)
+    closeDeleteConfirm()
   }
 
   const htmlToArray = (html) => {
@@ -196,7 +220,7 @@ export default function StructuredDetail() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button onClick={() => startEdit(parent)} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">Edit</button>
-                  <button onClick={() => removeParent(parent.dbid)} className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">Delete</button>
+                  <button onClick={() => openDeleteConfirm(parent)} className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">Delete</button>
                 </div>
               </div>
 
@@ -224,6 +248,26 @@ export default function StructuredDetail() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {deleteConfirm.open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-md p-5 space-y-4">
+            <div className="font-semibold text-lg">Confirm Delete</div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Are you sure you want to delete this question?
+            </p>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
+              {deleteConfirm.title}
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button disabled={deleting} onClick={closeDeleteConfirm} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
+              <button disabled={deleting} onClick={confirmDelete} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60">
+                {deleting ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
