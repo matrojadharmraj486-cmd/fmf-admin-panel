@@ -66,13 +66,16 @@ export const listQuestions = async (params = {}) => (await api.get('/admin/quest
 export const deleteQuestion = async (id) => (await api.delete(`/admin/questions/${id}`)).data
 
 // Question of the Day
-export const setQOTD = async ({ question, answerType, answer, answerImage }) => {
-  if (answerType === 'image' && answerImage) {
+export const setQOTD = async ({ question, answerType, answer, answerImage, answerImageUrl }) => {
+  if (answerType === 'image' && answerImage && typeof answerImage !== 'string') {
     const form = new FormData()
     form.append('question', question)
     form.append('answerType', 'image')
     form.append('answerImage', answerImage)
     return (await api.post('/api/question-of-the-day', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
+  }
+  if (answerType === 'image' && (answerImageUrl || typeof answerImage === 'string')) {
+    return (await api.post('/api/question-of-the-day', { question, answerType: 'image', answerImageUrl: answerImageUrl || answerImage })).data
   }
   return (await api.post('/api/question-of-the-day', { question, answerType: 'text', answer })).data
 }

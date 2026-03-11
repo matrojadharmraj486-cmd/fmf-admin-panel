@@ -5,7 +5,8 @@ import {
   updateStructuredParent,
   updateStructuredSub,
   deleteStructuredParent,
-  uploadStructuredSubImage
+  uploadStructuredSubImage,
+  setQOTD
 } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
 import { RichEditor } from '../shared/RichEditor.jsx'
@@ -27,6 +28,8 @@ export default function StructuredDetail() {
   const [deleting, setDeleting] = useState(false)
   const [editState, setEditState] = useState(emptyEditState)
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null, title: '' })
+  const [qotdState, setQotdState] = useState({ open: false, parent: null, subId: null })
+  const [qotdSaving, setQotdSaving] = useState(false)
 
   const baseUrl = import.meta?.env?.VITE_API_BASE_URL || ''
   const abs = (url) => {
@@ -142,6 +145,46 @@ export default function StructuredDetail() {
     return arr
   }
 
+  const stripHtml = (html) => String(html || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
+
+  const openQotd = (parent) => {
+    const firstSub = parent?.sub_questions?.[0]
+    setQotdState({ open: true, parent, subId: firstSub?.subDbid || firstSub?.id || null })
+  }
+
+  const closeQotd = () => {
+    setQotdState({ open: false, parent: null, subId: null })
+  }
+
+  const confirmQotd = async () => {
+    const parent = qotdState.parent
+    if (!parent) return
+    const sub = (parent.sub_questions || []).find((s) => (s.subDbid || s.id) === qotdState.subId) || parent.sub_questions?.[0]
+    if (!sub) {
+      setError('No sub question found to set as QOTD')
+      return
+    }
+    const questionHtml = `${parent.question_text || ''}${sub.text ? `<br/>${sub.text}` : ''}`
+    const payload = {
+      question: questionHtml,
+      answerType: sub.answerType || 'text',
+      answer: sub.answerType === 'text' ? (sub.answerHtml || '') : undefined,
+      answerImage: sub.answerType === 'image' ? (sub.answerImage || '') : undefined
+    }
+    setError('')
+    setOk('')
+    setQotdSaving(true)
+    try {
+      await setQOTD(payload)
+      setOk('QOTD updated')
+      closeQotd()
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to set QOTD')
+    } finally {
+      setQotdSaving(false)
+    }
+  }
+
   const startEdit = (parent) => {
     setEditState({
       open: true,
@@ -220,6 +263,7 @@ export default function StructuredDetail() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button onClick={() => startEdit(parent)} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">Edit</button>
+                  <button onClick={() => openQotd(parent)} className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Add QOTD</button>
                   <button onClick={() => openDeleteConfirm(parent)} className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">Delete</button>
                 </div>
               </div>
@@ -335,6 +379,40 @@ export default function StructuredDetail() {
               <button onClick={closeEdit} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
               <button disabled={saving} onClick={saveEdit} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
                 {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {qotdState.open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-lg p-5 space-y-4">
+            <div className="font-semibold text-lg">Set Question of the Day</div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Select the sub question whose answer should be used for QOTD.
+            </p>
+            <div className="space-y-2">
+              <label className="block text-sm">Sub Question</label>
+              <select
+                value={qotdState.subId || ''}
+                onChange={(e) => setQotdState((s) => ({ ...s, subId: e.target.value }))}
+                className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+              >
+                {(qotdState.parent?.sub_questions || []).map((sub, idx) => {
+                  const id = sub.subDbid || sub.id || String(idx)
+                  const label = stripHtml(sub.text) || `Sub Question ${idx + 1}`
+                  return <option key={id} value={id}>{label}</option>
+                })}
+              </select>
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              QOTD question will use the main question plus the selected sub question.
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button disabled={qotdSaving} onClick={closeQotd} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
+              <button disabled={qotdSaving} onClick={confirmQotd} className="px-4 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60">
+                {qotdSaving ? 'Setting...' : 'Set QOTD'}
               </button>
             </div>
           </div>
