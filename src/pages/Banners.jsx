@@ -7,11 +7,16 @@ export default function Banners() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [file, setFile] = useState(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [sourceType, setSourceType] = useState("file");
+  const [bannerType, setBannerType] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [fileInputKey, setFileInputKey] = useState(0);
 
   const fetchBanners = async () => {
     try {
       setLoading(true);
-      const res = await listBanners();
+      const res = await listBanners(filterType ? { bannerType: filterType } : {});
       setItems(Array.isArray(res) ? res : res?.data || []);
     } catch (err) {
       setItems([]);
@@ -23,18 +28,38 @@ export default function Banners() {
 
   useEffect(() => {
     fetchBanners();
-  }, []);
+  }, [filterType]);
 
   const add = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!file) return;
+    if (!bannerType.trim()) {
+      setError("Please enter banner type");
+      return;
+    }
+
+    if (sourceType === "file" && !file) {
+      setError("Please choose an image file");
+      return;
+    }
+
+    if (sourceType === "link" && !imageUrl.trim()) {
+      setError("Please enter image link");
+      return;
+    }
 
     try {
       setUploading(true);
-      await uploadBanner(file);
+      await uploadBanner({
+        file: sourceType === "file" ? file : null,
+        imageUrl: sourceType === "link" ? imageUrl.trim() : "",
+        bannerType: bannerType.trim(),
+      });
       setFile(null);
+      setImageUrl("");
+      setBannerType("");
+      setFileInputKey((k) => k + 1);
       await fetchBanners();
     } catch {
       setError("Failed to upload banner");
@@ -59,13 +84,55 @@ export default function Banners() {
 
       <form
         onSubmit={add}
-        className="flex items-center gap-3 bg-white dark:bg-gray-800 p-4 rounded shadow"
+        className="flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 p-4 rounded shadow"
       >
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="sourceType"
+              value="file"
+              checked={sourceType === "file"}
+              onChange={() => setSourceType("file")}
+            />
+            Upload file
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="sourceType"
+              value="link"
+              checked={sourceType === "link"}
+              onChange={() => setSourceType("link")}
+            />
+            Image link
+          </label>
+        </div>
+
+        {sourceType === "file" ? (
+          <input
+            key={fileInputKey}
+            type="file"
+            accept="image/*"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
+          />
+        ) : (
+          <input
+            type="url"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder="https://example.com/banner.jpg"
+            className="min-w-[260px] flex-1 rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+          />
+        )}
+
         <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-          className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
+          type="text"
+          value={bannerType}
+          onChange={(e) => setBannerType(e.target.value)}
+          placeholder="Banner type (e.g. home, offer)"
+          className="min-w-[200px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
         />
 
         <button
@@ -76,6 +143,23 @@ export default function Banners() {
           {uploading ? "Uploading..." : "Upload"}
         </button>
       </form>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          type="text"
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+          placeholder="Filter by banner type"
+          className="min-w-[220px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+        />
+        <button
+          type="button"
+          onClick={() => setFilterType("")}
+          className="px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
+        >
+          Clear filter
+        </button>
+      </div>
 
       {error && <div className="text-red-600 text-sm">{error}</div>}
 
@@ -96,7 +180,10 @@ export default function Banners() {
                 className="w-full h-40 object-cover"
               />
 
-              <div className="p-2 text-right">
+              <div className="p-2 flex items-center justify-between">
+                <div className="text-xs text-gray-500">
+                  {b.bannerType || b.type || "—"}
+                </div>
                 <button
                   onClick={() => remove(b._id)}
                   className="px-3 py-1 rounded bg-red-600 text-white"
