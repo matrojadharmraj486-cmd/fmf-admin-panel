@@ -127,13 +127,16 @@ export default function Banners() {
           />
         )}
 
-        <input
-          type="text"
+        <select
           value={bannerType}
           onChange={(e) => setBannerType(e.target.value)}
-          placeholder="Banner type (e.g. home, offer)"
           className="min-w-[200px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-        />
+        >
+          <option value="">Select banner type</option>
+          <option value="type1">type1</option>
+          <option value="type2">type2</option>
+          <option value="type3">type3</option>
+        </select>
 
         <button
           type="submit"
