@@ -2,6 +2,31 @@ import { useEffect, useState } from "react";
 import { listBanners, uploadBanner, deleteBanner } from "../services/api.js";
 
 export default function Banners() {
+  const routeOptions = [
+    { label: "Splash", value: "/" },
+    { label: "Authentication", value: "/authenticationView" },
+    { label: "Email Authentication", value: "/emailAuthenticationView" },
+    { label: "Verify OTP", value: "/verifyOtpView" },
+    { label: "Add Other Details", value: "/addOtherDetailsView" },
+    { label: "Home", value: "/homeView" },
+    { label: "Course", value: "/courseView" },
+    { label: "FAQ", value: "/faqView" },
+    { label: "Profile", value: "/profileView" },
+    { label: "Main Nav", value: "/mainNavView" },
+    { label: "Notification", value: "/notificationView" },
+    { label: "Contact Us", value: "/contactUsView" },
+    { label: "Settings", value: "/settingsView" },
+    { label: "Add Opinion", value: "/addOpinionView" },
+    { label: "Edit Profile", value: "/editProfileView" },
+    { label: "Plans", value: "/plansView" },
+    { label: "Bookmark", value: "/bookmarkView" },
+    { label: "Question Part", value: "/QuestionPartView" },
+    { label: "Questions", value: "/questionsView" },
+    { label: "Forgot Password", value: "/forgotPasswordView" },
+    { label: "Search", value: "/searchView" },
+    { label: "Other (External URL)", value: "other" },
+  ];
+
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -11,6 +36,7 @@ export default function Banners() {
   const [sourceType, setSourceType] = useState("file");
   const [bannerType, setBannerType] = useState("");
   const [redirectionUrl, setRedirectionUrl] = useState("");
+  const [routeChoice, setRouteChoice] = useState("");
   const [filterType, setFilterType] = useState("");
   const [fileInputKey, setFileInputKey] = useState(0);
 
@@ -50,9 +76,21 @@ export default function Banners() {
       return;
     }
 
-    if (!redirectionUrl.trim()) {
-      setError("Please enter redirection URL");
+    if (!routeChoice) {
+      setError("Please select redirection route");
       return;
+    }
+
+    if (routeChoice === "other" && !redirectionUrl.trim()) {
+      setError("Please enter external redirection URL");
+      return;
+    }
+    if (routeChoice === "other") {
+      const url = redirectionUrl.trim();
+      if (!(url.startsWith("http") || url.startsWith("/"))) {
+        setError("External URL must start with http or /");
+        return;
+      }
     }
 
     try {
@@ -67,6 +105,7 @@ export default function Banners() {
       setImageUrl("");
       setBannerType("");
       setRedirectionUrl("");
+      setRouteChoice("");
       setFileInputKey((k) => k + 1);
       await fetchBanners();
     } catch {
@@ -146,14 +185,33 @@ export default function Banners() {
           <option value="type3">type3</option>
         </select>
 
-        <input
-          type="url"
-          value={redirectionUrl}
-          onChange={(e) => setRedirectionUrl(e.target.value)}
-          placeholder="Redirection URL"
-          required
-          className="min-w-[260px] flex-1 rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-        />
+        <select
+          value={routeChoice}
+          onChange={(e) => {
+            const val = e.target.value;
+            setRouteChoice(val);
+            if (val && val !== "other") setRedirectionUrl(val);
+            if (val === "other") setRedirectionUrl("");
+          }}
+          className="min-w-[260px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+        >
+          <option value="">Select redirection route</option>
+          {routeOptions.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </select>
+
+        {routeChoice === "other" ? (
+          <input
+            type="text"
+            value={redirectionUrl}
+            onChange={(e) => setRedirectionUrl(e.target.value)}
+            placeholder="https://example.com or /custom-path"
+            className="min-w-[260px] flex-1 rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+          />
+        ) : null}
 
         <button
           type="submit"
