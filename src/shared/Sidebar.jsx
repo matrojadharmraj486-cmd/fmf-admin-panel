@@ -9,6 +9,7 @@ const nav = [
   // { to: '/bookmarks', label: 'Bookmarks' },
   { to: '/qotd', label: 'QOTD' },
   { to: '/banners', label: 'Banners' },
+  { to: '/testimonials', label: 'Testimonials' },
   // { to: '/public-questions', label: 'Public' }
 ]
 

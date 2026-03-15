@@ -94,6 +94,19 @@ export const uploadBanner = async ({ file, imageUrl, bannerType }) => {
 export const listBanners = async (params = {}) => (await api.get('/api/admin/banner', { params })).data
 export const deleteBanner = async (id) => (await api.delete(`/api/admin/banners/${id}`)).data
 
+// Testimonials
+export const createTestimonial = async ({ photo, name, designation, location, review }) => {
+  const form = new FormData()
+  if (photo) form.append('photo', photo)
+  form.append('name', name)
+  form.append('designation', designation)
+  form.append('location', location)
+  form.append('review', review)
+  return (await api.post('/api/admin/testimonials', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
+}
+export const listTestimonials = async () => (await api.get('/api/admin/testimonials')).data
+export const deleteTestimonial = async (id) => (await api.delete(`/api/admin/testimonials/${id}`)).data
+
 // Local mock (fallback optionally)
 export const mockApi = {
   getStats: async () => ({
