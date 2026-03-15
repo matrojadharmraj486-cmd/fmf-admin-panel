@@ -14,6 +14,10 @@ const emptyEditState = {
   open: false,
   pid: null,
   questionHtml: '',
+  isDirect: false,
+  parentAnswerType: 'text',
+  parentAnswerHtml: '',
+  parentAnswerImageUrl: '',
   subs: []
 }
 
@@ -51,6 +55,11 @@ export default function StructuredDetail() {
     year: String(p?.year ?? ''),
     part: String(p?.part ?? '').toLowerCase().includes('2') ? 'part2' : 'part1',
     question_text: p?.question_text || p?.questionText || p?.title || '',
+    isDirect: Boolean(p?.isDirect),
+    answerType: p?.answerType || (p?.answerImage ? 'image' : 'text'),
+    answer: Array.isArray(p?.answer) ? p.answer : [],
+    answerHtml: answerArrayToHtml(Array.isArray(p?.answer) ? p.answer : []),
+    answerImage: abs(p?.answerImage || ''),
     sub_questions: (Array.isArray(p?.sub_questions) ? p.sub_questions : []).map((s) => ({
       id: s?.id || s?._id || String(s?.id || s?._id || ''),
       subDbid: s?._id || s?.id || '',
@@ -164,6 +173,10 @@ export default function StructuredDetail() {
       open: true,
       pid: parent.dbid,
       questionHtml: parent.question_text || '',
+      isDirect: Boolean(parent.isDirect) || (parent.sub_questions || []).length === 0,
+      parentAnswerType: parent.answerType || 'text',
+      parentAnswerHtml: parent.answerHtml || '',
+      parentAnswerImageUrl: parent.answerImage || '',
       subs: (parent.sub_questions || []).map((s) => ({
         sid: s.subDbid || s.id,
         part: s.part || '',
@@ -193,7 +206,16 @@ export default function StructuredDetail() {
     setOk('')
     setSaving(true)
     try {
-      await editParent(editState.pid, { question_text: editState.questionHtml })
+      const parentPayload = { question_text: editState.questionHtml }
+      if (editState.isDirect) {
+        parentPayload.answerType = editState.parentAnswerType || 'text'
+        if (parentPayload.answerType === 'text') {
+          parentPayload.answer = htmlToArray(editState.parentAnswerHtml)
+        } else {
+          parentPayload.answerImage = editState.parentAnswerImageUrl || ''
+        }
+      }
+      await editParent(editState.pid, parentPayload)
       for (const sub of editState.subs) {
         const payload = { text: sub.textHtml, answerType: sub.answerType }
         if (sub.answerType === 'text') {
@@ -249,6 +271,21 @@ export default function StructuredDetail() {
               </div>
 
               <div className="space-y-3">
+                {(parent.isDirect || parent.answerType) && (
+                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/40">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Direct Answer | {parent.answerType || 'text'}</div>
+                    <div className="mt-2">
+                      {(parent.answerType || 'text') === 'text' && Array.isArray(parent.answer) && (
+                        <ul className="list-disc ml-5 space-y-1">
+                          {parent.answer.map((a, idx) => <li key={idx} dangerouslySetInnerHTML={{ __html: a }} />)}
+                        </ul>
+                      )}
+                      {(parent.answerType || 'text') === 'image' && parent.answerImage && (
+                        <img src={parent.answerImage} alt="answer" className="mt-2 max-h-48 object-contain rounded border border-gray-200 dark:border-gray-700" />
+                      )}
+                    </div>
+                  </div>
+                )}
                 {(parent.sub_questions || []).map((sub, sIdx) => (
                   <div key={`${sub.id}-${sIdx}`} className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/40">
                     <div className="flex items-center justify-between gap-3">
@@ -304,6 +341,46 @@ export default function StructuredDetail() {
               <label className="block text-sm">Question</label>
               <RichEditor value={editState.questionHtml} onChange={(html) => setEditState((s) => ({ ...s, questionHtml: html }))} />
             </div>
+
+            {editState.isDirect && (
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Direct Answer</div>
+
+                <div className="grid md:grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <label className="block text-sm">Answer Type</label>
+                    <select
+                      value={editState.parentAnswerType}
+                      onChange={(e) => setEditState((s) => ({ ...s, parentAnswerType: e.target.value }))}
+                      className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                    >
+                      <option value="text">Text</option>
+                      <option value="image">Image</option>
+                    </select>
+                  </div>
+
+                  {editState.parentAnswerType === 'text' ? (
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="block text-sm">Answer</label>
+                      <RichEditor
+                        value={editState.parentAnswerHtml}
+                        onChange={(html) => setEditState((s) => ({ ...s, parentAnswerHtml: html }))}
+                      />
+                    </div>
+                  ) : (
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="block text-sm">Answer Image URL</label>
+                      <input
+                        placeholder="Image URL"
+                        value={editState.parentAnswerImageUrl}
+                        onChange={(e) => setEditState((s) => ({ ...s, parentAnswerImageUrl: e.target.value }))}
+                        className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4">
               {editState.subs.map((sub, index) => (
