@@ -57,8 +57,18 @@ export default function StructuredDetail() {
     question_text: p?.question_text || p?.questionText || p?.title || '',
     isDirect: Boolean(p?.isDirect),
     answerType: p?.answerType || (p?.answerImage ? 'image' : 'text'),
-    answer: Array.isArray(p?.answer) ? p.answer : [],
-    answerHtml: answerArrayToHtml(Array.isArray(p?.answer) ? p.answer : []),
+    answer: Array.isArray(p?.main_question_answer)
+      ? p.main_question_answer
+      : Array.isArray(p?.answer)
+        ? p.answer
+        : [],
+    answerHtml: answerArrayToHtml(
+      Array.isArray(p?.main_question_answer)
+        ? p.main_question_answer
+        : Array.isArray(p?.answer)
+          ? p.answer
+          : []
+    ),
     answerImage: abs(p?.answerImage || ''),
     sub_questions: (Array.isArray(p?.sub_questions) ? p.sub_questions : []).map((s) => ({
       id: s?.id || s?._id || String(s?.id || s?._id || ''),
@@ -271,9 +281,9 @@ export default function StructuredDetail() {
               </div>
 
               <div className="space-y-3">
-                {(parent.isDirect || parent.answerType) && (
+                {((parent.isDirect || parent.answerType) && (parent.answerType === 'image' ? Boolean(parent.answerImage) : Array.isArray(parent.answer) && parent.answer.length > 0)) && (
                   <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/40">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Direct Answer | {parent.answerType || 'text'}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Main Answer | {parent.answerType || 'text'}</div>
                     <div className="mt-2">
                       {(parent.answerType || 'text') === 'text' && Array.isArray(parent.answer) && (
                         <ul className="list-disc ml-5 space-y-1">
