@@ -8,6 +8,7 @@ import {
 import { Loader } from '../shared/Loader.jsx'
 import { useNavigate } from 'react-router-dom'
 import { RichEditor } from '../shared/RichEditor.jsx'
+import sampleStructuredFile from '../assets/files/questions-structured-hybrid-18.xlsx'
 
 export default function StructuredAdmin() {
   const navigate = useNavigate()
@@ -226,6 +227,9 @@ useEffect(() => {
           {uploading ? 'Uploading...' : 'Upload'}
         </button>
       </form>
+      <div className="text-sm text-gray-600 dark:text-gray-400">
+        Sample file: <a href={sampleStructuredFile} download className="text-blue-600 hover:underline">Download .xlsx template</a>
+      </div>
       {error && <div className="text-red-600 text-sm">{error}</div>}
       {ok && <div className="text-green-600 text-sm">{ok}</div>}
       {loading ? <Loader /> : (

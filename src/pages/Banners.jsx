@@ -10,6 +10,7 @@ export default function Banners() {
   const [imageUrl, setImageUrl] = useState("");
   const [sourceType, setSourceType] = useState("file");
   const [bannerType, setBannerType] = useState("");
+  const [redirectionUrl, setRedirectionUrl] = useState("");
   const [filterType, setFilterType] = useState("");
   const [fileInputKey, setFileInputKey] = useState(0);
 
@@ -49,16 +50,23 @@ export default function Banners() {
       return;
     }
 
+    if (!redirectionUrl.trim()) {
+      setError("Please enter redirection URL");
+      return;
+    }
+
     try {
       setUploading(true);
       await uploadBanner({
         file: sourceType === "file" ? file : null,
         imageUrl: sourceType === "link" ? imageUrl.trim() : "",
         bannerType: bannerType.trim(),
+        redirectionUrl: redirectionUrl.trim(),
       });
       setFile(null);
       setImageUrl("");
       setBannerType("");
+      setRedirectionUrl("");
       setFileInputKey((k) => k + 1);
       await fetchBanners();
     } catch {
@@ -138,6 +146,15 @@ export default function Banners() {
           <option value="type3">type3</option>
         </select>
 
+        <input
+          type="url"
+          value={redirectionUrl}
+          onChange={(e) => setRedirectionUrl(e.target.value)}
+          placeholder="Redirection URL"
+          required
+          className="min-w-[260px] flex-1 rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+        />
+
         <button
           type="submit"
           disabled={uploading}
@@ -182,10 +199,14 @@ export default function Banners() {
                 alt="banner"
                 className="w-full h-40 object-cover"
               />
-
               <div className="p-2 flex items-center justify-between">
                 <div className="text-xs text-gray-500">
-                  {b.bannerType || b.type || "—"}
+                  <div>{b.bannerType || b.type || "—"}</div>
+                  {b.redirectionUrl ? (
+                    <div className="truncate max-w-[180px]">
+                      {b.redirectionUrl}
+                    </div>
+                  ) : null}
                 </div>
                 <button
                   onClick={() => remove(b._id)}
@@ -201,3 +222,7 @@ export default function Banners() {
     </div>
   );
 }
+
+
+
+
