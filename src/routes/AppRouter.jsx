@@ -11,6 +11,7 @@ import Testimonials from '../pages/Testimonials.jsx'
 import StructuredAdmin from '../pages/StructuredAdmin.jsx'
 import PublicQuestions from '../pages/PublicQuestions.jsx'
 import StructuredDetail from '../pages/StructuredDetail.jsx'
+import PrivacyPolicy from '../pages/PrivacyPolicy.jsx'
 import { ProtectedRoute } from '../routes/ProtectedRoute.jsx'
 import { AppLayout } from '../shared/AppLayout.jsx'
 
@@ -18,6 +19,7 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
