@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { listBanners, uploadBanner, deleteBanner } from "../services/api.js";
+import { listBanners, uploadBanner, deleteBanner, updateBanner } from "../services/api.js";
 
 export default function Banners() {
   const routeOptions = [
@@ -39,7 +39,43 @@ export default function Banners() {
   const [routeChoice, setRouteChoice] = useState("");
   const [filterType, setFilterType] = useState("");
   const [fileInputKey, setFileInputKey] = useState(0);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editId, setEditId] = useState("");
+  const [editSourceType, setEditSourceType] = useState("keep");
+  const [editFile, setEditFile] = useState(null);
+  const [editImageUrl, setEditImageUrl] = useState("");
+  const [editBannerType, setEditBannerType] = useState("");
+  const [editRedirectionUrl, setEditRedirectionUrl] = useState("");
+  const [editRouteChoice, setEditRouteChoice] = useState("");
+  const [editIsActive, setEditIsActive] = useState(true);
 
+  const openEdit = (b) => {
+    const redirect = b?.redirectionUrl || "";
+    const matched = routeOptions.find((r) => r.value === redirect);
+    setEditId(b?._id || b?.id || "");
+    setEditBannerType(b?.bannerType || b?.type || "");
+    setEditRedirectionUrl(redirect);
+    setEditRouteChoice(matched ? matched.value : redirect ? "other" : "");
+    setEditImageUrl(b?.imageUrl || "");
+    setEditFile(null);
+    setEditSourceType("keep");
+    setEditIsActive(typeof b?.isActive === "boolean" ? b.isActive : true);
+    setEditOpen(true);
+  };
+
+  const closeEdit = () => {
+    setEditOpen(false);
+    setEditSaving(false);
+    setEditId("");
+    setEditFile(null);
+    setEditImageUrl("");
+    setEditBannerType("");
+    setEditRedirectionUrl("");
+    setEditRouteChoice("");
+    setEditSourceType("keep");
+    setEditIsActive(true);
+  };
   const fetchBanners = async () => {
     try {
       setLoading(true);
@@ -125,6 +161,60 @@ export default function Banners() {
     }
   };
 
+  const saveEdit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!editBannerType.trim()) {
+      setError("Please enter banner type");
+      return;
+    }
+
+    if (!editRouteChoice) {
+      setError("Please select redirection route");
+      return;
+    }
+
+    if (editRouteChoice === "other" && !editRedirectionUrl.trim()) {
+      setError("Please enter external redirection URL");
+      return;
+    }
+
+    if (editRouteChoice === "other") {
+      const url = editRedirectionUrl.trim();
+      if (!(url.startsWith("http") || url.startsWith("/"))) {
+        setError("External URL must start with http or /");
+        return;
+      }
+    }
+
+    if (editSourceType === "file" && !editFile) {
+      setError("Please choose an image file");
+      return;
+    }
+
+    if (editSourceType === "link" && !editImageUrl.trim()) {
+      setError("Please enter image link");
+      return;
+    }
+
+    try {
+      setEditSaving(true);
+      await updateBanner(editId, {
+        file: editSourceType === "file" ? editFile : null,
+        imageUrl: editSourceType === "link" ? editImageUrl.trim() : "",
+        bannerType: editBannerType.trim(),
+        redirectionUrl: editRedirectionUrl.trim(),
+        isActive: editIsActive,
+      });
+      await fetchBanners();
+      closeEdit();
+    } catch {
+      setError("Failed to update banner");
+    } finally {
+      setEditSaving(false);
+    }
+  };
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Banners</h2>
@@ -266,21 +356,144 @@ export default function Banners() {
                     </div>
                   ) : null}
                 </div>
-                <button
-                  onClick={() => remove(b._id)}
-                  className="px-3 py-1 rounded bg-red-600 text-white"
-                >
-                  Delete
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openEdit(b)}
+                    className="px-3 py-1 rounded bg-blue-600 text-white"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => remove(b._id)}
+                    className="px-3 py-1 rounded bg-red-600 text-white"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {editOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <form onSubmit={saveEdit} className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="font-semibold text-lg">Edit Banner</div>
+              <button type="button" onClick={closeEdit} className="text-gray-500">Close</button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="editSourceType"
+                  value="keep"
+                  checked={editSourceType === "keep"}
+                  onChange={() => setEditSourceType("keep")}
+                />
+                Keep existing image
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="editSourceType"
+                  value="file"
+                  checked={editSourceType === "file"}
+                  onChange={() => setEditSourceType("file")}
+                />
+                Upload file
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="editSourceType"
+                  value="link"
+                  checked={editSourceType === "link"}
+                  onChange={() => setEditSourceType("link")}
+                />
+                Image link
+              </label>
+            </div>
+
+            {editSourceType === "file" ? (
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setEditFile(e.target.files?.[0] || null)}
+                className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
+              />
+            ) : editSourceType === "link" ? (
+              <input
+                type="url"
+                value={editImageUrl}
+                onChange={(e) => setEditImageUrl(e.target.value)}
+                placeholder="https://example.com/banner.jpg"
+                className="min-w-[260px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+              />
+            ) : null}
+
+            <select
+              value={editBannerType}
+              onChange={(e) => setEditBannerType(e.target.value)}
+              className="min-w-[200px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+            >
+              <option value="">Select banner type</option>
+              <option value="type1">type1</option>
+              <option value="type2">type2</option>
+              <option value="type3">type3</option>
+            </select>
+
+            <select
+              value={editRouteChoice}
+              onChange={(e) => {
+                const val = e.target.value;
+                setEditRouteChoice(val);
+                if (val && val !== "other") setEditRedirectionUrl(val);
+                if (val === "other") setEditRedirectionUrl("");
+              }}
+              className="min-w-[260px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+            >
+              <option value="">Select redirection route</option>
+              {routeOptions.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+
+            {editRouteChoice === "other" ? (
+              <input
+                type="text"
+                value={editRedirectionUrl}
+                onChange={(e) => setEditRedirectionUrl(e.target.value)}
+                placeholder="https://example.com or /custom-path"
+                className="min-w-[260px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+              />
+            ) : null}
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={editIsActive}
+                onChange={(e) => setEditIsActive(e.target.checked)}
+              />
+              Active
+            </label>
+
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={closeEdit} className="px-4 py-2 rounded border border-gray-300 dark:border-gray-700">
+                Cancel
+              </button>
+              <button type="submit" disabled={editSaving} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
+                {editSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
-
-
-
 

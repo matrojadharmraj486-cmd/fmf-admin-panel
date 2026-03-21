@@ -10,6 +10,7 @@ const nav = [
   // { to: '/qotd', label: 'QOTD' },
   { to: '/banners', label: 'Banners' },
   { to: '/testimonials', label: 'Testimonials' },
+  { to: '/subscriptions', label: 'Subscriptions' },
   // { to: '/public-questions', label: 'Public' }
 ]
 

@@ -94,6 +94,22 @@ export const uploadBanner = async ({ file, imageUrl, bannerType, redirectionUrl 
 }
 export const listBanners = async (params = {}) => (await api.get('/api/admin/banner', { params })).data
 export const deleteBanner = async (id) => (await api.delete(`/api/admin/banners/${id}`)).data
+export const updateBanner = async (id, { file, imageUrl, bannerType, redirectionUrl, isActive }) => {
+  if (file) {
+    const form = new FormData()
+    if (bannerType) form.append('bannerType', bannerType)
+    if (redirectionUrl) form.append('redirectionUrl', redirectionUrl)
+    if (typeof isActive !== 'undefined') form.append('isActive', String(isActive))
+    form.append('image', file)
+    return (await api.put(`/api/admin/banners/${id}`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
+  }
+  const payload = {}
+  if (bannerType) payload.bannerType = bannerType
+  if (redirectionUrl) payload.redirectionUrl = redirectionUrl
+  if (imageUrl) payload.imageUrl = imageUrl
+  if (typeof isActive !== 'undefined') payload.isActive = isActive
+  return (await api.put(`/api/admin/banners/${id}`, payload)).data
+}
 
 // Testimonials
 export const createTestimonial = async ({ photo, name, designation, location, review }) => {
@@ -107,6 +123,23 @@ export const createTestimonial = async ({ photo, name, designation, location, re
 }
 export const listTestimonials = async () => (await api.get('/api/admin/testimonials')).data
 export const deleteTestimonial = async (id) => (await api.delete(`/api/admin/testimonials/${id}`)).data
+export const updateTestimonial = async (id, { photo, name, designation, location, review }) => {
+  if (photo) {
+    const form = new FormData()
+    if (name) form.append('name', name)
+    if (designation) form.append('designation', designation)
+    if (location) form.append('location', location)
+    if (review) form.append('review', review)
+    form.append('photo', photo)
+    return (await api.put(`/api/admin/testimonials/${id}`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
+  }
+  const payload = {}
+  if (name) payload.name = name
+  if (designation) payload.designation = designation
+  if (location) payload.location = location
+  if (review) payload.review = review
+  return (await api.put(`/api/admin/testimonials/${id}`, payload)).data
+}
 
 // Local mock (fallback optionally)
 export const mockApi = {
@@ -162,3 +195,16 @@ export const uploadEditorImage = async (file) => {
   form.append('image', file)
   return (await api.post('/api/admin/editor-image', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
 }
+
+// Subscriptions
+export const listSubscriptions = async (includeInactive = true) => {
+  const { data } = await api.get('/api/admin/subscriptions', { params: { includeInactive } })
+  return data
+}
+export const createSubscription = async (payload) => (await api.post('/api/admin/subscriptions', payload)).data
+export const updateSubscription = async (id, payload) => (await api.put(`/api/admin/subscriptions/${id}`, payload)).data
+export const updateSubscriptionStatus = async (id, isActive) => (
+  await api.patch(`/api/admin/subscriptions/${id}/status`, { isActive })
+).data
+
+

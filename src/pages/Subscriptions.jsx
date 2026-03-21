@@ -1,0 +1,376 @@
+import { useEffect, useMemo, useState } from 'react'
+import {
+  listSubscriptions,
+  createSubscription,
+  updateSubscription,
+  updateSubscriptionStatus
+} from '../services/api.js'
+
+const emptyForm = {
+  name: '',
+  description: '',
+  features: [],
+  price: '',
+  durationDays: '',
+  currency: 'INR',
+  isActive: true
+}
+
+export default function Subscriptions() {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState({ id: null, action: '' })
+  const [error, setError] = useState('')
+  const [toasts, setToasts] = useState([])
+
+  const [modalOpen, setModalOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [form, setForm] = useState({ ...emptyForm })
+  const [featureInput, setFeatureInput] = useState('')
+
+  const pushToast = (type, message) => {
+    const id = `${Date.now()}_${Math.random()}`
+    setToasts((t) => [...t, { id, type, message }])
+    setTimeout(() => {
+      setToasts((t) => t.filter((x) => x.id !== id))
+    }, 3000)
+  }
+
+  const fetchSubscriptions = async () => {
+    try {
+      setLoading(true)
+      const res = await listSubscriptions(true)
+      setItems(Array.isArray(res) ? res : res?.data || [])
+      setError('')
+    } catch {
+      setItems([])
+      setError('Failed to load subscriptions')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchSubscriptions()
+  }, [])
+
+  const resetForm = () => {
+    setForm({ ...emptyForm })
+    setFeatureInput('')
+    setEditingId(null)
+  }
+
+  const openCreate = () => {
+    resetForm()
+    setModalOpen(true)
+  }
+
+  const openEdit = (item) => {
+    const features = Array.isArray(item?.features)
+      ? item.features
+      : typeof item?.features === 'string'
+        ? item.features.split(',').map((f) => f.trim()).filter(Boolean)
+        : []
+    setForm({
+      name: item?.name || '',
+      description: item?.description || '',
+      features,
+      price: item?.price ?? '',
+      durationDays: item?.durationDays ?? '',
+      currency: item?.currency || 'INR',
+      isActive: typeof item?.isActive === 'boolean' ? item.isActive : true
+    })
+    setFeatureInput('')
+    setEditingId(item?._id || item?.id || null)
+    setModalOpen(true)
+  }
+
+  const closeModal = () => {
+    setModalOpen(false)
+    setSaving(false)
+    resetForm()
+  }
+
+  const addFeature = (value) => {
+    const cleaned = value.trim()
+    if (!cleaned) return
+    setForm((f) => ({
+      ...f,
+      features: f.features.includes(cleaned) ? f.features : [...f.features, cleaned]
+    }))
+    setFeatureInput('')
+  }
+
+  const removeFeature = (value) => {
+    setForm((f) => ({ ...f, features: f.features.filter((x) => x !== value) }))
+  }
+
+  const onFeatureKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault()
+      addFeature(featureInput)
+    }
+  }
+
+  const validateForm = () => {
+    if (!form.name.trim()) return 'Please enter name'
+    const priceValue = Number(form.price)
+    if (!Number.isFinite(priceValue) || priceValue <= 0) return 'Price must be greater than 0'
+    const durationValue = Number(form.durationDays)
+    if (!Number.isFinite(durationValue) || durationValue <= 0) return 'Duration must be greater than 0'
+    return ''
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setError('')
+    const validationError = validateForm()
+    if (validationError) {
+      setError(validationError)
+      pushToast('error', validationError)
+      return
+    }
+
+    const payload = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      features: form.features,
+      price: Number(form.price),
+      durationDays: Number(form.durationDays),
+      currency: form.currency.trim() || 'INR',
+      isActive: !!form.isActive
+    }
+
+    try {
+      setSaving(true)
+      if (editingId) {
+        await updateSubscription(editingId, payload)
+        pushToast('success', 'Subscription updated')
+      } else {
+        await createSubscription(payload)
+        pushToast('success', 'Subscription created')
+      }
+      await fetchSubscriptions()
+      closeModal()
+    } catch {
+      const msg = editingId ? 'Failed to update subscription' : 'Failed to create subscription'
+      setError(msg)
+      pushToast('error', msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const toggleActive = async (item) => {
+    const id = item?._id || item?.id
+    if (!id) return
+    try {
+      setBusy({ id, action: 'toggle' })
+      await updateSubscriptionStatus(id, !item.isActive)
+      setItems((prev) =>
+        prev.map((p) => ((p._id || p.id) === id ? { ...p, isActive: !p.isActive } : p))
+      )
+      pushToast('success', `Subscription ${item.isActive ? 'deactivated' : 'activated'}`)
+    } catch {
+      const msg = 'Failed to update status'
+      setError(msg)
+      pushToast('error', msg)
+    } finally {
+      setBusy({ id: null, action: '' })
+    }
+  }
+
+  const rows = useMemo(() => items, [items])
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold">Subscriptions</h2>
+        <button
+          type="button"
+          onClick={openCreate}
+          className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700"
+        >
+          New Plan
+        </button>
+      </div>
+
+      {error && <div className="text-red-600 text-sm">{error}</div>}
+
+      {loading ? (
+        <div>Loading...</div>
+      ) : rows.length === 0 ? (
+        <div className="text-gray-500">No subscriptions found</div>
+      ) : (
+        <div className="overflow-x-auto rounded border border-gray-200 dark:border-gray-700">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-4 py-2 text-left">Name</th>
+                <th className="px-4 py-2 text-left">Price (₹)</th>
+                <th className="px-4 py-2 text-left">Duration (days)</th>
+                <th className="px-4 py-2 text-left">Status</th>
+                <th className="px-4 py-2 text-left">CreatedAt</th>
+                <th className="px-4 py-2 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {rows.map((item) => {
+                const id = item?._id || item?.id
+                const createdAt = item?.createdAt ? new Date(item.createdAt) : null
+                return (
+                  <tr key={id} className="bg-white dark:bg-gray-800">
+                    <td className="px-4 py-2">{item?.name || '—'}</td>
+                    <td className="px-4 py-2">₹{item?.price ?? '—'}</td>
+                    <td className="px-4 py-2">{item?.durationDays ?? '—'}</td>
+                    <td className="px-4 py-2">
+                      <span className={item?.isActive ? 'text-emerald-600' : 'text-gray-500'}>
+                        {item?.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">
+                      {createdAt && !Number.isNaN(createdAt.getTime())
+                        ? createdAt.toLocaleString()
+                        : '—'}
+                    </td>
+                    <td className="px-4 py-2 text-right space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(item)}
+                        className="px-3 py-1 rounded bg-blue-600 text-white"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy.id === id}
+                        onClick={() => toggleActive(item)}
+                        className="px-3 py-1 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60"
+                      >
+                        {busy.id === id && busy.action === 'toggle'
+                          ? 'Updating...'
+                          : item?.isActive
+                            ? 'Deactivate'
+                            : 'Activate'}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <form onSubmit={submit} className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-3xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="font-semibold text-lg">{editingId ? 'Edit Plan' : 'Create Plan'}</div>
+              <button type="button" onClick={closeModal} className="text-gray-500">Close</button>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Name"
+                className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+                required
+              />
+              <input
+                type="text"
+                value={form.currency}
+                onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
+                placeholder="Currency (INR)"
+                className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+              />
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.price}
+                onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                placeholder="Price"
+                className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+                required
+              />
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.durationDays}
+                onChange={(e) => setForm((f) => ({ ...f, durationDays: e.target.value }))}
+                placeholder="Duration (days)"
+                className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+                required
+              />
+            </div>
+
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              placeholder="Description"
+              rows={3}
+              className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+            />
+
+            <div className="space-y-2">
+              <label className="text-sm text-gray-600 dark:text-gray-300">Features</label>
+              <div className="flex flex-wrap items-center gap-2 rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-2 py-2">
+                {form.features.map((f) => (
+                  <span key={f} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-sm">
+                    {f}
+                    <button type="button" onClick={() => removeFeature(f)} className="text-gray-500 hover:text-gray-700">
+                      &times;
+                    </button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  value={featureInput}
+                  onChange={(e) => setFeatureInput(e.target.value)}
+                  onKeyDown={onFeatureKeyDown}
+                  onBlur={() => addFeature(featureInput)}
+                  placeholder="Add feature and press Enter"
+                  className="flex-1 min-w-[160px] bg-transparent outline-none px-2 py-1"
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.isActive}
+                onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+              />
+              Active
+            </label>
+
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={closeModal} className="px-4 py-2 rounded border border-gray-300 dark:border-gray-700">
+                Cancel
+              </button>
+              <button type="submit" disabled={saving} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
+                {saving ? 'Saving...' : (editingId ? 'Save' : 'Create')}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {toasts.map((t) => (
+          <div
+            key={t.id}
+            className={`px-4 py-2 rounded shadow text-white ${t.type === 'error' ? 'bg-red-600' : 'bg-emerald-600'}`}
+          >
+            {t.message}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
