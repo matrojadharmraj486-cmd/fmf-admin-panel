@@ -11,6 +11,7 @@ const nav = [
   { to: '/banners', label: 'Banners' },
   { to: '/testimonials', label: 'Testimonials' },
   { to: '/subscriptions', label: 'Subscriptions' },
+  { to: '/support-tickets', label: 'Support Tickets' },
   // { to: '/public-questions', label: 'Public' }
 ]
 

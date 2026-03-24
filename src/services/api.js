@@ -207,4 +207,13 @@ export const updateSubscriptionStatus = async (id, isActive) => (
   await api.patch(`/api/admin/subscriptions/${id}/status`, { isActive })
 ).data
 
+// Support Tickets
+export const listSupportTickets = async (params = {}) => {
+  const { data } = await api.get('/api/admin/support-tickets', { params })
+  return data
+}
+export const updateSupportTicket = async (id, payload) => (
+  await api.patch(`/api/admin/support-tickets/${id}`, payload)
+).data
+
 
