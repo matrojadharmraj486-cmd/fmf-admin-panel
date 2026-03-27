@@ -49,27 +49,28 @@ export default function StructuredDetail() {
     return `<ul>${arr.map((a) => `<li>${a || ''}</li>`).join('')}</ul>`
   }
 
+  const extractQuestionNumber = (val) => {
+    if (val === null || typeof val === 'undefined') return null
+    const match = String(val).match(/(\d+)/)
+    if (!match) return null
+    const num = Number.parseInt(match[1], 10)
+    return Number.isFinite(num) ? num : null
+  }
+
   const norm = (p) => ({
     id: p?.id || p?._id || String(p?.id || p?._id || ''),
     dbid: p?._id || p?.id || '',
     year: String(p?.year ?? ''),
     part: String(p?.part ?? '').toLowerCase().includes('2') ? 'part2' : 'part1',
     question_text: p?.question_text || p?.questionText || p?.title || '',
-    isDirect: Boolean(p?.isDirect),
+    questionId: p?.questionId || p?.question_id || p?.qid || p?.questionNo || p?.question_no || '',
+    isDirect: Boolean(p?.isDirect) || (Array.isArray(p?.sub_questions) ? p.sub_questions.length === 0 : false),
     answerType: p?.answerType || (p?.answerImage ? 'image' : 'text'),
-    answer: Array.isArray(p?.main_question_answer)
-      ? p.main_question_answer
-      : Array.isArray(p?.answer)
-        ? p.answer
-        : [],
-    answerHtml: answerArrayToHtml(
-      Array.isArray(p?.main_question_answer)
-        ? p.main_question_answer
-        : Array.isArray(p?.answer)
-          ? p.answer
-          : []
-    ),
+    answer: Array.isArray(p?.answer) ? p.answer : [],
+    answerHtml: answerArrayToHtml(Array.isArray(p?.answer) ? p.answer : []),
     answerImage: abs(p?.answerImage || ''),
+    mainQuestionAnswer: Array.isArray(p?.main_question_answer) ? p.main_question_answer : [],
+    mainQuestionAnswerHtml: answerArrayToHtml(Array.isArray(p?.main_question_answer) ? p.main_question_answer : []),
     sub_questions: (Array.isArray(p?.sub_questions) ? p.sub_questions : []).map((s) => ({
       id: s?.id || s?._id || String(s?.id || s?._id || ''),
       subDbid: s?._id || s?.id || '',
@@ -88,8 +89,24 @@ export default function StructuredDetail() {
       try {
         const res = await getStructuredQuestionsFiltered(year, part)
         const data = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : []
-        const arr = data.map(norm)
-        if (mounted) setList(arr)
+        const arr = data.map(norm).map((item, index) => ({
+          ...item,
+          __index: index,
+          __qnum: extractQuestionNumber(item.questionId)
+        }))
+        const hasQnum = arr.some((p) => Number.isFinite(p.__qnum))
+        const sorted = hasQnum
+          ? [...arr].sort((a, b) => {
+            const aHas = Number.isFinite(a.__qnum)
+            const bHas = Number.isFinite(b.__qnum)
+            if (aHas && bHas) return a.__qnum - b.__qnum
+            if (aHas && !bHas) return -1
+            if (!aHas && bHas) return 1
+            return a.__index - b.__index
+          })
+          : arr
+        const cleaned = sorted.map(({ __index, __qnum, ...rest }) => rest)
+        if (mounted) setList(cleaned)
       } catch (e) {
         setError(e?.response?.data?.message || 'Failed to load')
       } finally {
@@ -113,7 +130,7 @@ export default function StructuredDetail() {
         if (s.subDbid !== subId) return s
         const next = { ...s, ...payload }
         if (payload.answerType === 'text') next.answerHtml = answerArrayToHtml(payload.answer || [])
-        if (payload.answerType === 'image') next.answerImage = payload.answerImage || ''
+        if (payload.answerType === 'image') next.answerImage = abs(payload.answerImage || '')
         return next
       })
       return { ...p, sub_questions: subs }
@@ -210,6 +227,19 @@ export default function StructuredDetail() {
     }))
   }
 
+  const uploadSubImageForEdit = async (sid, file) => {
+    if (!editState.pid || !sid || !file) return
+    setError('')
+    setOk('')
+    try {
+      const up = await uploadStructuredSubImage(editState.pid, sid, file)
+      const url = up?.url || up?.imageUrl || up?.absoluteUrl || ''
+      if (url) updateEditSub(sid, { answerImageUrl: url, answerImageFile: null })
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Image upload failed')
+    }
+  }
+
   const saveEdit = async () => {
     if (!editState.pid) return
     setError('')
@@ -231,12 +261,7 @@ export default function StructuredDetail() {
         if (sub.answerType === 'text') {
           payload.answer = htmlToArray(sub.answerHtml)
         } else {
-          let url = sub.answerImageUrl
-          if (sub.answerImageFile) {
-            const up = await uploadStructuredSubImage(editState.pid, sub.sid, sub.answerImageFile)
-            url = up?.url || up?.imageUrl || up?.absoluteUrl || url
-          }
-          payload.answerImage = url
+          payload.answerImage = sub.answerImageUrl || ''
         }
         await editSub(editState.pid, sub.sid, payload)
       }
@@ -265,7 +290,14 @@ export default function StructuredDetail() {
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <div className="font-semibold text-lg leading-7" dangerouslySetInnerHTML={{ __html: parent.question_text }} />
-                  <div className="text-sm text-gray-500 dark:text-gray-400">{parent.year} | {String(parent.part).toUpperCase()}</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                    <span>{parent.year} | {String(parent.part).toUpperCase()}</span>
+                    {parent.questionId && (
+                      <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200 text-xs font-medium">
+                        {parent.questionId}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button onClick={() => startEdit(parent)} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">Edit</button>
@@ -281,7 +313,7 @@ export default function StructuredDetail() {
               </div>
 
               <div className="space-y-3">
-                {((parent.isDirect || parent.answerType) && (parent.answerType === 'image' ? Boolean(parent.answerImage) : Array.isArray(parent.answer) && parent.answer.length > 0)) && (
+                {parent.isDirect && (parent.answerType === 'image' ? Boolean(parent.answerImage) : Array.isArray(parent.answer) && parent.answer.length > 0) && (
                   <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/40">
                     <div className="text-sm text-gray-500 dark:text-gray-400">Main Answer | {parent.answerType || 'text'}</div>
                     <div className="mt-2">
@@ -292,6 +324,20 @@ export default function StructuredDetail() {
                       )}
                       {(parent.answerType || 'text') === 'image' && parent.answerImage && (
                         <img src={parent.answerImage} alt="answer" className="mt-2 max-h-48 object-contain rounded border border-gray-200 dark:border-gray-700" />
+                      )}
+                    </div>
+                  </div>
+                )}
+                {!parent.isDirect && Array.isArray(parent.mainQuestionAnswer) && parent.mainQuestionAnswer.length > 0 && (
+                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/40">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Main Question Answer</div>
+                    <div className="mt-2">
+                      {parent.mainQuestionAnswer.length === 1 ? (
+                        <div dangerouslySetInnerHTML={{ __html: parent.mainQuestionAnswer[0] || '' }} />
+                      ) : (
+                        <ul className="list-disc ml-5 space-y-1">
+                          {parent.mainQuestionAnswer.map((a, idx) => <li key={idx} dangerouslySetInnerHTML={{ __html: a }} />)}
+                        </ul>
                       )}
                     </div>
                   </div>
@@ -386,6 +432,13 @@ export default function StructuredDetail() {
                         onChange={(e) => setEditState((s) => ({ ...s, parentAnswerImageUrl: e.target.value }))}
                         className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
                       />
+                      {editState.parentAnswerImageUrl && (
+                        <img
+                          src={abs(editState.parentAnswerImageUrl)}
+                          alt="preview"
+                          className="mt-2 max-h-48 object-contain rounded border border-gray-200 dark:border-gray-700"
+                        />
+                      )}
                     </div>
                   )}
                 </div>
@@ -432,9 +485,16 @@ export default function StructuredDetail() {
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => updateEditSub(sub.sid, { answerImageFile: e.target.files?.[0] || null })}
+                          onChange={(e) => uploadSubImageForEdit(sub.sid, e.target.files?.[0] || null)}
                           className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
                         />
+                        {sub.answerImageUrl && (
+                          <img
+                            src={abs(sub.answerImageUrl)}
+                            alt="preview"
+                            className="mt-2 max-h-48 object-contain rounded border border-gray-200 dark:border-gray-700"
+                          />
+                        )}
                       </div>
                     )}
                   </div>

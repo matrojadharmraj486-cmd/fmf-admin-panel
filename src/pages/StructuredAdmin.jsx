@@ -213,13 +213,13 @@ useEffect(() => {
       <form onSubmit={onUpload} className="grid md:grid-cols-4 gap-3 bg-white dark:bg-gray-800 p-4 rounded shadow">
         <input type="file" accept=".xlsx" onChange={(e) => setFile(e.target.files?.[0] || null)} className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
         <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={year} onChange={(e) => setYear(e.target.value)}>
-          <option value="">Year (optional)</option>
+          <option value="">Year</option>
           {['2027','2026','2025','2024','2023','2022'].map((y) => (
             <option key={y} value={y}>{y}</option>
           ))}
         </select>
         <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={part} onChange={(e) => setPart(e.target.value)}>
-          <option value="">Part (optional)</option>
+          <option value="">Part</option>
           <option value="part1">Part 1</option>
           <option value="part2">Part 2</option>
         </select>

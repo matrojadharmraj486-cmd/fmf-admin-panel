@@ -40,6 +40,16 @@ export default function PublicQuestions() {
     })
   }, [list, year, part])
 
+  const renderAnswerList = (arr) => {
+    if (!Array.isArray(arr) || arr.length === 0) return null
+    if (arr.length === 1) return <div>{arr[0]}</div>
+    return (
+      <ul className="list-disc ml-5">
+        {arr.map((a, idx) => <li key={idx}>{a}</li>)}
+      </ul>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Public Questions</h2>
@@ -65,6 +75,25 @@ export default function PublicQuestions() {
                 <div className="font-medium">{parent.question_text}</div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">{parent.year} • {String(parent.part).toUpperCase?.() || parent.part}</div>
               </div>
+              {parent.isDirect && (parent.answerType === 'image' ? Boolean(parent.answerImage) : Array.isArray(parent.answer) && parent.answer.length > 0) && (
+                <div className="rounded border border-gray-200 dark:border-gray-700 p-3">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Main Answer | {parent.answerType || 'text'}</div>
+                  <div className="mt-2">
+                    {parent.answerType === 'text' && renderAnswerList(parent.answer)}
+                    {parent.answerType === 'image' && parent.answerImage && (
+                      <img src={parent.answerImage} alt="answer" className="mt-2 max-h-40 object-contain" />
+                    )}
+                  </div>
+                </div>
+              )}
+              {!parent.isDirect && Array.isArray(parent.main_question_answer) && parent.main_question_answer.length > 0 && (
+                <div className="rounded border border-gray-200 dark:border-gray-700 p-3">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Main Question Answer</div>
+                  <div className="mt-2">
+                    {renderAnswerList(parent.main_question_answer)}
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 {(parent.sub_questions || []).map((sub) => (
                   <div key={sub.id} className="rounded border border-gray-200 dark:border-gray-700 p-3">
@@ -90,3 +119,4 @@ export default function PublicQuestions() {
     </div>
   )
 }
+
