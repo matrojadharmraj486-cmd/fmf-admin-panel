@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { getPublicQuestions } from '../services/api.js'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { getPublicQuestions, getQuestionYears, getQuestionParts, getQuestionPapers } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
 
 export default function PublicQuestions() {
@@ -8,12 +8,129 @@ export default function PublicQuestions() {
   const [error, setError] = useState('')
   const [year, setYear] = useState(localStorage.getItem('pq_year') || '')
   const [part, setPart] = useState(localStorage.getItem('pq_part') || '')
+  const [paper, setPaper] = useState(localStorage.getItem('pq_paper') || '')
+  const [years, setYears] = useState([])
+  const [parts, setParts] = useState([])
+  const [papers, setPapers] = useState([])
+  const prevYearRef = useRef(year)
+  const prevPartRef = useRef(part)
+  const didInitYearRef = useRef(false)
+  const didInitPartRef = useRef(false)
+
+  const toArray = (x) => Array.isArray(x) ? x : Array.isArray(x?.data) ? x.data : Array.isArray(x?.data?.data) ? x.data.data : []
+  const partToApi = (val) => {
+    const s = String(val || '').trim()
+    if (!s) return ''
+    const lower = s.toLowerCase().replace(/\s+/g, '')
+    if (lower.includes('part2') || lower === '2') return 'Part 2'
+    if (lower.includes('part1') || lower === '1') return 'Part 1'
+    return s
+  }
+  const normalizeYear = (val) => {
+    if (val === null || typeof val === 'undefined') return ''
+    if (typeof val === 'object') {
+      return String(val?.value || val?.label || val?.name || '').trim()
+    }
+    return String(val).trim()
+  }
+  const normalizePartOption = (val) => {
+    if (val === null || typeof val === 'undefined') return null
+    const raw = typeof val === 'object'
+      ? String(val?.value || val?.label || val?.name || '').trim()
+      : String(val).trim()
+    if (!raw) return null
+    const apiValue = partToApi(raw)
+    const is2 = apiValue.toLowerCase().includes('2')
+    return { value: is2 ? 'part2' : 'part1', label: is2 ? 'Part 2' : 'Part 1', apiValue }
+  }
+  const normalizePaper = (val) => {
+    if (val === null || typeof val === 'undefined') return ''
+    if (typeof val === 'object') {
+      return String(val?.value || val?.label || val?.name || '').trim()
+    }
+    return String(val).trim()
+  }
+
+  useEffect(() => {
+    let mounted = true
+    const loadYears = async () => {
+      try {
+        const res = await getQuestionYears()
+        const arr = toArray(res).map(normalizeYear).filter(Boolean)
+        if (mounted) {
+          setYears(arr)
+          if (!year && arr[0]) setYear(String(arr[0]))
+        }
+      } catch (e) {
+        setError(e?.response?.data?.message || 'Failed to load years')
+        if (mounted) setYears([])
+      }
+    }
+    loadYears()
+    return () => { mounted = false }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    const loadParts = async () => {
+      if (!year) {
+        if (mounted) setParts([])
+        return
+      }
+      if (didInitYearRef.current && prevYearRef.current !== year) {
+        setPart('')
+        setPaper('')
+        setPapers([])
+      }
+      try {
+        const res = await getQuestionParts(year)
+        const arr = toArray(res).map(normalizePartOption).filter(Boolean)
+        if (mounted) setParts(arr)
+      } catch (e) {
+        setError(e?.response?.data?.message || 'Failed to load parts')
+        if (mounted) setParts([])
+      } finally {
+        prevYearRef.current = year
+        didInitYearRef.current = true
+      }
+    }
+    loadParts()
+    return () => { mounted = false }
+  }, [year])
+
+  useEffect(() => {
+    let mounted = true
+    const loadPapers = async () => {
+      if (!year || !part) {
+        if (mounted) setPapers([])
+        return
+      }
+      if (didInitPartRef.current && prevPartRef.current !== part) {
+        setPaper('')
+      }
+      const partApi = parts.find((p) => p.value === part)?.apiValue || partToApi(part)
+      try {
+        const res = await getQuestionPapers(year, partApi)
+        const arr = toArray(res).map(normalizePaper).filter(Boolean)
+        if (mounted) setPapers(arr)
+      } catch (e) {
+        setError(e?.response?.data?.message || 'Failed to load papers')
+        if (mounted) setPapers([])
+      } finally {
+        prevPartRef.current = part
+        didInitPartRef.current = true
+      }
+    }
+    loadPapers()
+    return () => { mounted = false }
+  }, [year, part, parts])
 
   useEffect(() => {
     let mounted = true
     const load = async () => {
       try {
-        const data = await getPublicQuestions({ year, part })
+        const partApi = part ? (parts.find((p) => p.value === part)?.apiValue || partToApi(part)) : ''
+        const data = await getPublicQuestions({ year, part: partApi || undefined, paper: paper || undefined })
         if (mounted) setList(data || [])
       } catch (e) {
         setError(e?.response?.data?.message || 'Failed to load')
@@ -31,14 +148,19 @@ export default function PublicQuestions() {
   useEffect(() => {
     localStorage.setItem('pq_part', part)
   }, [part])
+  useEffect(() => {
+    localStorage.setItem('pq_paper', paper)
+  }, [paper])
 
   const filtered = useMemo(() => {
+    const normPart = part ? partToApi(part).toLowerCase().replace(/\s+/g, '') : ''
     return list.filter((p) => {
       const byYear = year ? String(p.year) === String(year) : true
-      const byPart = part ? String(p.part).toLowerCase() === String(part).toLowerCase() : true
-      return byYear && byPart
+      const byPart = normPart ? String(p.part || '').toLowerCase().replace(/\s+/g, '') === normPart : true
+      const byPaper = paper ? String(p.paper) === String(paper) : true
+      return byYear && byPart && byPaper
     })
-  }, [list, year, part])
+  }, [list, year, part, paper])
 
   const renderAnswerList = (arr) => {
     if (!Array.isArray(arr) || arr.length === 0) return null
@@ -53,17 +175,29 @@ export default function PublicQuestions() {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Public Questions</h2>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={year} onChange={(e) => setYear(e.target.value)}>
           <option value="">Filter Year</option>
-          {['2027','2026','2025','2024','2023','2022'].map((y) => (
+          {years.map((y) => (
             <option key={y} value={y}>{y}</option>
           ))}
         </select>
         <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={part} onChange={(e) => setPart(e.target.value)}>
           <option value="">Filter Part</option>
-          <option value="part1">Part 1</option>
-          <option value="part2">Part 2</option>
+          {parts.map((p) => (
+            <option key={p.value} value={p.value}>{p.label}</option>
+          ))}
+        </select>
+        <select
+          className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
+          value={paper}
+          onChange={(e) => setPaper(e.target.value)}
+          disabled={!part}
+        >
+          <option value="">{part ? 'Filter Paper' : 'Select part first'}</option>
+          {papers.map((p) => (
+            <option key={p} value={p}>{p}</option>
+          ))}
         </select>
       </div>
       {error && <div className="text-red-600 text-sm">{error}</div>}
@@ -72,7 +206,10 @@ export default function PublicQuestions() {
           {filtered.map((parent) => (
             <div key={parent.id} className="rounded bg-white dark:bg-gray-800 shadow p-4 space-y-3">
               <div>
-                <div className="font-medium">{parent.question_text}</div>
+                <div className="font-medium">
+                  {parent.questionId && <span className="mr-2 text-indigo-700 dark:text-indigo-300">{parent.questionId}.</span>}
+                  {parent.question_text}
+                </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">{parent.year} • {String(parent.part).toUpperCase?.() || parent.part}</div>
               </div>
               {parent.isDirect && (parent.answerType === 'image' ? Boolean(parent.answerImage) : Array.isArray(parent.answer) && parent.answer.length > 0) && (
@@ -119,4 +256,5 @@ export default function PublicQuestions() {
     </div>
   )
 }
+
 

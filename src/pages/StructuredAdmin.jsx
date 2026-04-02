@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   uploadStructuredQuestions,
   createStructuredQuestion,
   getStructuredQuestions,
-  uploadEditorImage
+  uploadEditorImage,
+  deleteStructuredQuestionsByYearPart,
+  getQuestionYears,
+  getQuestionParts,
+  getQuestionPapers
 } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
 import { useNavigate } from 'react-router-dom'
@@ -19,11 +23,21 @@ export default function StructuredAdmin() {
   const [file, setFile] = useState(null)
   const [year, setYear] = useState(localStorage.getItem('sq_year') || '')
   const [part, setPart] = useState(localStorage.getItem('sq_part') || '')
+  const [paper, setPaper] = useState(localStorage.getItem('sq_paper') || '')
+  const [years, setYears] = useState([])
+  const [parts, setParts] = useState([])
+  const [papers, setPapers] = useState([])
   const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [purging, setPurging] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, year: '', part: '' })
+  const prevYearRef = useRef(year)
+  const prevPartRef = useRef(part)
+  const didInitYearRef = useRef(false)
+  const didInitPartRef = useRef(false)
   const [createForm, setCreateForm] = useState({
     year: localStorage.getItem('sq_year') || '',
-    part: localStorage.getItem('sq_part') || 'part1',
+    part: localStorage.getItem('sq_part') || '',
     questionHtml: '',
     subPart: 'a',
     subQuestionHtml: '',
@@ -37,6 +51,38 @@ export default function StructuredAdmin() {
     const s = String(val || '').toLowerCase().replace(/\s+/g, '')
     if (s.includes('part2') || s === '2' || /2$/.test(s)) return 'part2'
     return 'part1'
+  }
+  const partToApi = (val) => {
+    const s = String(val || '').trim()
+    if (!s) return ''
+    const lower = s.toLowerCase().replace(/\s+/g, '')
+    if (lower.includes('part2') || lower === '2') return 'Part 2'
+    if (lower.includes('part1') || lower === '1') return 'Part 1'
+    return s
+  }
+  const normalizeYear = (val) => {
+    if (val === null || typeof val === 'undefined') return ''
+    if (typeof val === 'object') {
+      return String(val?.value || val?.label || val?.name || '').trim()
+    }
+    return String(val).trim()
+  }
+  const normalizePartOption = (val) => {
+    if (val === null || typeof val === 'undefined') return null
+    const raw = typeof val === 'object'
+      ? String(val?.value || val?.label || val?.name || '').trim()
+      : String(val).trim()
+    if (!raw) return null
+    const apiValue = partToApi(raw)
+    const is2 = apiValue.toLowerCase().includes('2')
+    return { value: is2 ? 'part2' : 'part1', label: is2 ? 'Part 2' : 'Part 1', apiValue }
+  }
+  const normalizePaper = (val) => {
+    if (val === null || typeof val === 'undefined') return ''
+    if (typeof val === 'object') {
+      return String(val?.value || val?.label || val?.name || '').trim()
+    }
+    return String(val).trim()
   }
   const abs = (url) => (url && !String(url).startsWith('http') && baseUrl) ? `${baseUrl}${url}` : url
   const normalize = (p) => ({
@@ -60,32 +106,106 @@ export default function StructuredAdmin() {
     }))
   })
 
-useEffect(() => {
-  let mounted = true
+  useEffect(() => {
+    let mounted = true
 
-  const load = async () => {
-    try {
-      const res = await getStructuredQuestions()
+    const load = async () => {
+      try {
+        const res = await getStructuredQuestions()
 
-      const arr = toArray(res).map(normalize)
+        const arr = toArray(res).map(normalize)
 
-      if (mounted) {
-        setList(arr)
-        if (!year && arr[0]?.year) setYear(String(arr[0].year))
-        if (!part && arr[0]?.part) setPart(arr[0].part)
+        if (mounted) {
+          setList(arr)
+          if (!year && arr[0]?.year) setYear(String(arr[0].year))
+          if (!part && arr[0]?.part) setPart(arr[0].part)
+        }
+
+      } catch (e) {
+        setError(e?.response?.data?.message || 'Failed to load')
+        if (mounted) setList([])
+      } finally {
+        if (mounted) setLoading(false)
       }
-
-    } catch (e) {
-      setError(e?.response?.data?.message || 'Failed to load')
-      if (mounted) setList([])
-    } finally {
-      if (mounted) setLoading(false)
     }
-  }
 
-  load()
-  return () => { mounted = false }
-}, [])
+    load()
+    return () => { mounted = false }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    const loadYears = async () => {
+      try {
+        const res = await getQuestionYears()
+        const arr = toArray(res).map(normalizeYear).filter(Boolean)
+        if (mounted) {
+          setYears(arr)
+          if (!year && arr[0]) setYear(String(arr[0]))
+        }
+      } catch (e) {
+        setError(e?.response?.data?.message || 'Failed to load years')
+        if (mounted) setYears([])
+      }
+    }
+    loadYears()
+    return () => { mounted = false }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    const loadParts = async () => {
+      if (!year) {
+        if (mounted) setParts([])
+        return
+      }
+      if (didInitYearRef.current && prevYearRef.current !== year) {
+        setPart('')
+        setPaper('')
+        setPapers([])
+      }
+      try {
+        const res = await getQuestionParts(year)
+        const arr = toArray(res).map(normalizePartOption).filter(Boolean)
+        if (mounted) setParts(arr)
+      } catch (e) {
+        setError(e?.response?.data?.message || 'Failed to load parts')
+        if (mounted) setParts([])
+      } finally {
+        prevYearRef.current = year
+        didInitYearRef.current = true
+      }
+    }
+    loadParts()
+    return () => { mounted = false }
+  }, [year])
+
+  useEffect(() => {
+    let mounted = true
+    const loadPapers = async () => {
+      if (!year || !part) {
+        if (mounted) setPapers([])
+        return
+      }
+      if (didInitPartRef.current && prevPartRef.current !== part) {
+        setPaper('')
+      }
+      const partApi = parts.find((p) => p.value === part)?.apiValue || partToApi(part)
+      try {
+        const res = await getQuestionPapers(year, partApi)
+        const arr = toArray(res).map(normalizePaper).filter(Boolean)
+        if (mounted) setPapers(arr)
+      } catch (e) {
+        setError(e?.response?.data?.message || 'Failed to load papers')
+        if (mounted) setPapers([])
+      } finally {
+        prevPartRef.current = part
+        didInitPartRef.current = true
+      }
+    }
+    loadPapers()
+    return () => { mounted = false }
+  }, [year, part, parts])
 
   useEffect(() => {
     localStorage.setItem('sq_year', year)
@@ -93,6 +213,9 @@ useEffect(() => {
   useEffect(() => {
     localStorage.setItem('sq_part', part)
   }, [part])
+  useEffect(() => {
+    localStorage.setItem('sq_paper', paper)
+  }, [paper])
 
   const [uploading, setUploading] = useState(false)
   const htmlToArray = (html) => {
@@ -107,9 +230,14 @@ useEffect(() => {
     e.preventDefault()
     setError(''); setOk('')
     if (!file) { setError('Select .xlsx file'); return }
+    if (!String(year || '').trim()) { setError('Select year'); return }
+    if (!String(part || '').trim()) { setError('Select part'); return }
+    if (!String(paper || '').trim()) { setError('Select paper'); return }
+    if (!String(file?.name || '').toLowerCase().endsWith('.xlsx')) { setError('Only .xlsx file allowed'); return }
     try {
       setUploading(true)
-      await uploadStructuredQuestions({ file, year, part })
+      const partApi = parts.find((p) => p.value === part)?.apiValue || partToApi(part)
+      await uploadStructuredQuestions({ file, year, part: partApi, paper })
       setOk('Uploaded')
       const res = await getStructuredQuestions()
       const arr = toArray(res).map(normalize)
@@ -127,7 +255,7 @@ useEffect(() => {
     setOk('')
     setCreateForm({
       year: year || localStorage.getItem('sq_year') || '',
-      part: part || localStorage.getItem('sq_part') || 'part1',
+      part: part || localStorage.getItem('sq_part') || '',
       questionHtml: '',
       subPart: 'a',
       subQuestionHtml: '',
@@ -160,12 +288,20 @@ useEffect(() => {
       setError('Please select year')
       return
     }
+    if (!createForm.part) {
+      setError('Please select part')
+      return
+    }
     if (!createForm.questionHtml.trim()) {
       setError('Please enter question')
       return
     }
     if (!createForm.subQuestionHtml.trim()) {
       setError('Please enter sub question')
+      return
+    }
+    if (!createForm.subPart || !String(createForm.subPart).trim()) {
+      setError('Please enter sub part')
       return
     }
     if (createForm.answerType === 'text' && !createForm.answerHtml.trim()) {
@@ -202,6 +338,32 @@ useEffect(() => {
     }
   }
 
+  const onDeleteByYearPart = async () => {
+    setError('')
+    setOk('')
+    if (!String(year || '').trim()) { setError('Select year to delete'); return }
+    if (!String(part || '').trim()) { setError('Select part to delete'); return }
+    setDeleteConfirm({ open: true, year, part })
+  }
+
+  const closeDeleteConfirm = () => setDeleteConfirm({ open: false, year: '', part: '' })
+
+  const confirmDeleteByYearPart = async () => {
+    if (!deleteConfirm.year || !deleteConfirm.part) return
+    try {
+      setPurging(true)
+      await deleteStructuredQuestionsByYearPart(deleteConfirm.year, deleteConfirm.part)
+      const res = await getStructuredQuestions()
+      setList(toArray(res).map(normalize))
+      setOk('Deleted questions for selected year/part')
+      closeDeleteConfirm()
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Delete failed')
+    } finally {
+      setPurging(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -210,22 +372,37 @@ useEffect(() => {
           Add Question
         </button>
       </div>
-      <form onSubmit={onUpload} className="grid md:grid-cols-4 gap-3 bg-white dark:bg-gray-800 p-4 rounded shadow">
+      <form onSubmit={onUpload} className="grid md:grid-cols-5 gap-3 bg-white dark:bg-gray-800 p-3 rounded shadow">
         <input type="file" accept=".xlsx" onChange={(e) => setFile(e.target.files?.[0] || null)} className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
-        <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={year} onChange={(e) => setYear(e.target.value)}>
-          <option value="">Year</option>
-          {['2027','2026','2025','2024','2023','2022'].map((y) => (
+        <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={year} onChange={(e) => setYear(e.target.value)} required>
+          <option value="">Select year</option>
+          {years.map((y) => (
             <option key={y} value={y}>{y}</option>
           ))}
         </select>
-        <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={part} onChange={(e) => setPart(e.target.value)}>
-          <option value="">Part</option>
-          <option value="part1">Part 1</option>
-          <option value="part2">Part 2</option>
+        <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={part} onChange={(e) => setPart(e.target.value)} required>
+          <option value="">Select part</option>
+          {parts.map((p) => (
+            <option key={p.value} value={p.value}>{p.label}</option>
+          ))}
         </select>
-        <button disabled={uploading} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
-          {uploading ? 'Uploading...' : 'Upload'}
-        </button>
+        <select
+          className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
+          value={paper}
+          onChange={(e) => setPaper(e.target.value)}
+          disabled={!part}
+          required
+        >
+          <option value="">{part ? 'Select paper' : 'Select part first'}</option>
+          {papers.map((p) => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </select>
+        <div className="flex gap-2">
+          <button disabled={uploading} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60 w-full">
+            {uploading ? 'Uploading...' : 'Upload'}
+          </button>
+        </div>
       </form>
       <div className="text-sm text-gray-600 dark:text-gray-400">
         Sample file: <a href={sampleStructuredFile} download className="text-blue-600 hover:underline">Download .xlsx template</a>
@@ -236,9 +413,19 @@ useEffect(() => {
         <div className="space-y-4">
           <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Object.values(groupByYearPart(list)).map((g) => (
-              <div key={`${g.year}-${g.part}`} className="rounded bg-white dark:bg-gray-800 shadow p-4 cursor-pointer hover:shadow-md transition" onClick={() => navigate(`/structured-questions/${g.year}/${g.part}`)}>
+              <div key={`${g.year}-${g.part}`} className="relative rounded bg-white dark:bg-gray-800 shadow p-4 cursor-pointer hover:shadow-md transition" onClick={() => navigate(`/structured-questions/${g.year}/${g.part}`)}>
                 <div className="font-semibold">{g.year} • {String(g.part).toUpperCase()}</div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">{g.countParents} parent • {g.countSubs} sub</div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setDeleteConfirm({ open: true, year: String(g.year), part: String(g.part) })
+                  }}
+                  className="absolute top-2 right-2 text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700"
+                >
+                  Delete
+                </button>
               </div>
             ))}
           </div>
@@ -251,7 +438,7 @@ useEffect(() => {
             <div className="grid md:grid-cols-3 gap-3">
               <div className="space-y-2">
                 <label className="block text-sm">Year</label>
-                <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.year} onChange={(e) => setCreateForm((s) => ({ ...s, year: e.target.value }))}>
+                <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.year} onChange={(e) => setCreateForm((s) => ({ ...s, year: e.target.value }))} required>
                   <option value="">Select year</option>
                   {['2027','2026','2025','2024','2023','2022'].map((y) => (
                     <option key={y} value={y}>{y}</option>
@@ -260,7 +447,8 @@ useEffect(() => {
               </div>
               <div className="space-y-2">
                 <label className="block text-sm">Part</label>
-                <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.part} onChange={(e) => setCreateForm((s) => ({ ...s, part: e.target.value }))}>
+                <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.part} onChange={(e) => setCreateForm((s) => ({ ...s, part: e.target.value }))} required>
+                  <option value="">Select part</option>
                   <option value="part1">Part 1</option>
                   <option value="part2">Part 2</option>
                 </select>
@@ -318,6 +506,31 @@ useEffect(() => {
               <button onClick={closeCreateModal} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
               <button disabled={creating} onClick={onCreateSingleQuestion} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
                 {creating ? 'Adding...' : 'Add Question'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirm.open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-md p-5 space-y-4">
+            <div className="font-semibold text-lg">Confirm Delete</div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              This will permanently delete all structured questions for:
+            </p>
+            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {deleteConfirm.year} | {String(deleteConfirm.part).toUpperCase()}
+            </div>
+            <p className="text-sm text-red-600">This action cannot be undone.</p>
+            <div className="flex gap-2 justify-end">
+              <button disabled={purging} onClick={closeDeleteConfirm} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
+              <button
+                disabled={purging}
+                onClick={confirmDeleteByYearPart}
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {purging ? 'Deleting...' : 'Yes, Delete'}
               </button>
             </div>
           </div>

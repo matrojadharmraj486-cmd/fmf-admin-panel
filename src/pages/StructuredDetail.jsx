@@ -18,6 +18,7 @@ const emptyEditState = {
   parentAnswerType: 'text',
   parentAnswerHtml: '',
   parentAnswerImageUrl: '',
+  mainQuestionAnswerHtml: '',
   subs: []
 }
 
@@ -204,6 +205,7 @@ export default function StructuredDetail() {
       parentAnswerType: parent.answerType || 'text',
       parentAnswerHtml: parent.answerHtml || '',
       parentAnswerImageUrl: parent.answerImage || '',
+      mainQuestionAnswerHtml: parent.mainQuestionAnswerHtml || '',
       subs: (parent.sub_questions || []).map((s) => ({
         sid: s.subDbid || s.id,
         part: s.part || '',
@@ -254,6 +256,8 @@ export default function StructuredDetail() {
         } else {
           parentPayload.answerImage = editState.parentAnswerImageUrl || ''
         }
+      } else {
+        parentPayload.main_question_answer = htmlToArray(editState.mainQuestionAnswerHtml)
       }
       await editParent(editState.pid, parentPayload)
       for (const sub of editState.subs) {
@@ -289,14 +293,12 @@ export default function StructuredDetail() {
             <div key={parent.dbid || `${parent.id}-${pIdx}`} className="rounded-xl bg-white dark:bg-gray-800 shadow p-5 space-y-4 border border-gray-100 dark:border-gray-700">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <div className="font-semibold text-lg leading-7" dangerouslySetInnerHTML={{ __html: parent.question_text }} />
+                  <div className="font-semibold text-lg leading-7">
+                    {parent.questionId && <span className="mr-2 text-indigo-700 dark:text-indigo-300">{parent.questionId}.</span>}
+                    <span dangerouslySetInnerHTML={{ __html: parent.question_text }} />
+                  </div>
                   <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                     <span>{parent.year} | {String(parent.part).toUpperCase()}</span>
-                    {parent.questionId && (
-                      <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200 text-xs font-medium">
-                        {parent.questionId}
-                      </span>
-                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -441,6 +443,19 @@ export default function StructuredDetail() {
                       )}
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {!editState.isDirect && (
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Main Question Answer</div>
+                <div className="space-y-2">
+                  <label className="block text-sm">Answer</label>
+                  <RichEditor
+                    value={editState.mainQuestionAnswerHtml}
+                    onChange={(html) => setEditState((s) => ({ ...s, mainQuestionAnswerHtml: html }))}
+                  />
                 </div>
               </div>
             )}

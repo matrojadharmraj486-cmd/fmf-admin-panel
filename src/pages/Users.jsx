@@ -95,7 +95,7 @@ export default function Users() {
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {filtered.map((u) => (
               <tr key={u._id} className="bg-white dark:bg-gray-800">
-                <td className="px-4 py-2">{u.name}</td>
+                <td className="px-4 py-2">{u.fullName}</td>
                 <td className="px-4 py-2">{u.email}</td>
                 <td className="px-4 py-2">{u.blocked ? 'Blocked' : 'Active'}</td>
                 <td className="px-4 py-2">{u.subscribed ? 'Subscribed' : 'Unsubscribed'}</td>
