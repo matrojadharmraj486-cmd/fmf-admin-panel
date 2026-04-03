@@ -21,23 +21,23 @@ export default function StructuredAdmin() {
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
   const [file, setFile] = useState(null)
-  const [year, setYear] = useState(localStorage.getItem('sq_year') || '')
-  const [part, setPart] = useState(localStorage.getItem('sq_part') || '')
-  const [paper, setPaper] = useState(localStorage.getItem('sq_paper') || '')
+  const [year, setYear] = useState('')
+  const [part, setPart] = useState('')
+  const [paper, setPaper] = useState('')
   const [years, setYears] = useState([])
   const [parts, setParts] = useState([])
   const [papers, setPapers] = useState([])
   const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [purging, setPurging] = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, year: '', part: '' })
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, year: '', part: '', paper: '' })
   const prevYearRef = useRef(year)
   const prevPartRef = useRef(part)
   const didInitYearRef = useRef(false)
   const didInitPartRef = useRef(false)
   const [createForm, setCreateForm] = useState({
-    year: localStorage.getItem('sq_year') || '',
-    part: localStorage.getItem('sq_part') || '',
+    year: '',
+    part: '',
     questionHtml: '',
     subPart: 'a',
     subQuestionHtml: '',
@@ -89,6 +89,7 @@ export default function StructuredAdmin() {
     id: p?.id || p?._id || String(p?.id || p?._id || ''),
     year: String(p?.year ?? ''),
     part: canonicalPart(p?.part),
+    paper: String(p?.paper ?? ''),
     question_text: p?.question_text || p?.questionText || p?.title || '',
     sub_questions: toArray(p?.sub_questions || p?.subQuestions).map((s) => ({
       id: s?.id || s?._id || String(s?.id || s?._id || ''),
@@ -117,8 +118,6 @@ export default function StructuredAdmin() {
 
         if (mounted) {
           setList(arr)
-          if (!year && arr[0]?.year) setYear(String(arr[0].year))
-          if (!part && arr[0]?.part) setPart(arr[0].part)
         }
 
       } catch (e) {
@@ -141,7 +140,6 @@ export default function StructuredAdmin() {
         const arr = toArray(res).map(normalizeYear).filter(Boolean)
         if (mounted) {
           setYears(arr)
-          if (!year && arr[0]) setYear(String(arr[0]))
         }
       } catch (e) {
         setError(e?.response?.data?.message || 'Failed to load years')
@@ -207,15 +205,7 @@ export default function StructuredAdmin() {
     return () => { mounted = false }
   }, [year, part, parts])
 
-  useEffect(() => {
-    localStorage.setItem('sq_year', year)
-  }, [year])
-  useEffect(() => {
-    localStorage.setItem('sq_part', part)
-  }, [part])
-  useEffect(() => {
-    localStorage.setItem('sq_paper', paper)
-  }, [paper])
+  // Intentionally not persisting year/part/paper between sessions.
 
   const [uploading, setUploading] = useState(false)
   const htmlToArray = (html) => {
@@ -254,8 +244,8 @@ export default function StructuredAdmin() {
     setError('')
     setOk('')
     setCreateForm({
-      year: year || localStorage.getItem('sq_year') || '',
-      part: part || localStorage.getItem('sq_part') || '',
+      year: year || '',
+      part: part || '',
       questionHtml: '',
       subPart: 'a',
       subQuestionHtml: '',
@@ -343,10 +333,10 @@ export default function StructuredAdmin() {
     setOk('')
     if (!String(year || '').trim()) { setError('Select year to delete'); return }
     if (!String(part || '').trim()) { setError('Select part to delete'); return }
-    setDeleteConfirm({ open: true, year, part })
+    setDeleteConfirm({ open: true, year, part, paper })
   }
 
-  const closeDeleteConfirm = () => setDeleteConfirm({ open: false, year: '', part: '' })
+  const closeDeleteConfirm = () => setDeleteConfirm({ open: false, year: '', part: '', paper: '' })
 
   const confirmDeleteByYearPart = async () => {
     if (!deleteConfirm.year || !deleteConfirm.part) return
@@ -413,14 +403,14 @@ export default function StructuredAdmin() {
         <div className="space-y-4">
           <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Object.values(groupByYearPart(list)).map((g) => (
-              <div key={`${g.year}-${g.part}`} className="relative rounded bg-white dark:bg-gray-800 shadow p-4 cursor-pointer hover:shadow-md transition" onClick={() => navigate(`/structured-questions/${g.year}/${g.part}`)}>
-                <div className="font-semibold">{g.year} • {String(g.part).toUpperCase()}</div>
+              <div key={`${g.year}-${g.part}-${g.paper}`} className="relative rounded bg-white dark:bg-gray-800 shadow p-4 cursor-pointer hover:shadow-md transition" onClick={() => navigate(`/structured-questions/${g.year}/${g.part}`)}>
+                <div className="font-semibold">{g.year} • {String(g.part).toUpperCase()} {g.paper ? `� ${g.paper}` : ""}</div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">{g.countParents} parent • {g.countSubs} sub</div>
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation()
-                    setDeleteConfirm({ open: true, year: String(g.year), part: String(g.part) })
+                    setDeleteConfirm({ open: true, year: String(g.year), part: String(g.part), paper: String(g.paper || "") })
                   }}
                   className="absolute top-2 right-2 text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700"
                 >
@@ -520,7 +510,7 @@ export default function StructuredAdmin() {
               This will permanently delete all structured questions for:
             </p>
             <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {deleteConfirm.year} | {String(deleteConfirm.part).toUpperCase()}
+              {deleteConfirm.year} | {String(deleteConfirm.part).toUpperCase()} {deleteConfirm.paper ? `| ${deleteConfirm.paper}` : ""}
             </div>
             <p className="text-sm text-red-600">This action cannot be undone.</p>
             <div className="flex gap-2 justify-end">
@@ -543,10 +533,15 @@ export default function StructuredAdmin() {
 function groupByYearPart(list) {
   const map = {}
   for (const p of list) {
-    const key = `${p.year}-${p.part}`
-    if (!map[key]) map[key] = { year: p.year, part: p.part, countParents: 0, countSubs: 0 }
+    const key = `${p.year}-${p.part}-${p.paper || ''}`
+    if (!map[key]) map[key] = { year: p.year, part: p.part, paper: p.paper || '', countParents: 0, countSubs: 0 }
     map[key].countParents += 1
     map[key].countSubs += (Array.isArray(p.sub_questions) ? p.sub_questions.length : 0)
   }
   return map
 }
+
+
+
+
+
