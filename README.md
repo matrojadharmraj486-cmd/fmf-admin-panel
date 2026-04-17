@@ -27,5 +27,5 @@ Folder Structure
 Backend Integration
 -------------------
 - Configure VITE_API_BASE_URL.
-- Optionally configure VITE_DASHBOARD_POLL_MS (default: 30000).
+- Optionally configure VITE_DASHBOARD_POLL_MS (default: 30000) and VITE_DASHBOARD_MONTHS (default: 12).
 - Use api from src/services/api.js for requests.

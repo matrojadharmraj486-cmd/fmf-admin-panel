@@ -50,14 +50,14 @@ export const getDashboardStats = async () => {
   }
 }
 
-export const getDashboardTimeseries = async (days = 30) => {
-  const params = { days }
+export const getDashboardTimeseries = async (params = {}) => {
+  const query = typeof params === 'number' ? { days: params } : (params || {})
   try {
-    const { data } = await api.get('/admin/stats/timeseries', { params })
+    const { data } = await api.get('/admin/stats/timeseries', { params: query })
     return data
   } catch (err) {
     if (err?.response?.status === 404) {
-      const { data } = await api.get('/api/admin/stats/timeseries', { params })
+      const { data } = await api.get('/api/admin/stats/timeseries', { params: query })
       return data
     }
     throw err

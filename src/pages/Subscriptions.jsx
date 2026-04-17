@@ -9,7 +9,6 @@ import {
 const emptyForm = {
   name: '',
   description: '',
-  features: [],
   price: '',
   gstPercent: 0,
   durationDays: '',
@@ -28,7 +27,6 @@ export default function Subscriptions() {
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ ...emptyForm })
-  const [featureInput, setFeatureInput] = useState('')
 
   const pushToast = (type, message) => {
     const id = `${Date.now()}_${Math.random()}`
@@ -58,7 +56,6 @@ export default function Subscriptions() {
 
   const resetForm = () => {
     setForm({ ...emptyForm })
-    setFeatureInput('')
     setEditingId(null)
   }
 
@@ -68,22 +65,15 @@ export default function Subscriptions() {
   }
 
   const openEdit = (item) => {
-    const features = Array.isArray(item?.features)
-      ? item.features
-      : typeof item?.features === 'string'
-        ? item.features.split(',').map((f) => f.trim()).filter(Boolean)
-        : []
     setForm({
       name: item?.name || '',
       description: item?.description || '',
-      features,
       price: item?.price ?? '',
       gstPercent: Number.isFinite(Number(item?.gstPercent)) ? Number(item.gstPercent) : 0,
       durationDays: item?.durationDays ?? '',
       currency: item?.currency || 'INR',
       isActive: typeof item?.isActive === 'boolean' ? item.isActive : true
     })
-    setFeatureInput('')
     setEditingId(item?._id || item?.id || null)
     setModalOpen(true)
   }
@@ -92,27 +82,6 @@ export default function Subscriptions() {
     setModalOpen(false)
     setSaving(false)
     resetForm()
-  }
-
-  const addFeature = (value) => {
-    const cleaned = value.trim()
-    if (!cleaned) return
-    setForm((f) => ({
-      ...f,
-      features: f.features.includes(cleaned) ? f.features : [...f.features, cleaned]
-    }))
-    setFeatureInput('')
-  }
-
-  const removeFeature = (value) => {
-    setForm((f) => ({ ...f, features: f.features.filter((x) => x !== value) }))
-  }
-
-  const onFeatureKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault()
-      addFeature(featureInput)
-    }
   }
 
   const validateForm = () => {
@@ -139,7 +108,6 @@ export default function Subscriptions() {
     const payload = {
       name: form.name.trim(),
       description: form.description.trim(),
-      features: form.features,
       price: Number(form.price),
       gstPercent: Number(form.gstPercent),
       durationDays: Number(form.durationDays),
@@ -359,29 +327,6 @@ export default function Subscriptions() {
               rows={3}
               className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
             />
-
-            <div className="space-y-2">
-              <label className="text-sm text-gray-600 dark:text-gray-300">Features</label>
-              <div className="flex flex-wrap items-center gap-2 rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-2 py-2">
-                {form.features.map((f) => (
-                  <span key={f} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-sm">
-                    {f}
-                    <button type="button" onClick={() => removeFeature(f)} className="text-gray-500 hover:text-gray-700">
-                      &times;
-                    </button>
-                  </span>
-                ))}
-                <input
-                  type="text"
-                  value={featureInput}
-                  onChange={(e) => setFeatureInput(e.target.value)}
-                  onKeyDown={onFeatureKeyDown}
-                  onBlur={() => addFeature(featureInput)}
-                  placeholder="Add feature and press Enter"
-                  className="flex-1 min-w-[160px] bg-transparent outline-none px-2 py-1"
-                />
-              </div>
-            </div>
 
             <label className="flex items-center gap-2 text-sm">
               <input

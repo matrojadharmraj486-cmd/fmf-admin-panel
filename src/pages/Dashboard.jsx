@@ -15,6 +15,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 export default function Dashboard() {
   const pollMs = Number(import.meta?.env?.VITE_DASHBOARD_POLL_MS || 30000)
+  const months = Number(import.meta?.env?.VITE_DASHBOARD_MONTHS || 12)
   const [stats, setStats] = useState(null)
   const [points, setPoints] = useState([])
   const [loading, setLoading] = useState(true)
@@ -37,15 +38,38 @@ export default function Dashboard() {
     const arr = raw?.points || raw?.data?.points || raw?.data || []
     if (!Array.isArray(arr)) return []
     const toNumber = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0)
-    return arr
+    const mapped = arr
       .map((p) => ({
-        date: String(p?.date || '').slice(0, 10),
+        month: String(p?.month || p?.date || '').slice(0, 7),
         users: toNumber(p?.users),
         questions: toNumber(p?.questions),
         papers: toNumber(p?.papers),
         bookmarks: toNumber(p?.bookmarks)
       }))
-      .filter((p) => p.date)
+      .filter((p) => p.month && /^\d{4}-\d{2}$/.test(p.month))
+
+    const byMonth = new Map()
+    for (const p of mapped) {
+      const cur = byMonth.get(p.month) || { month: p.month, users: 0, questions: 0, papers: 0, bookmarks: 0 }
+      cur.users += p.users
+      cur.questions += p.questions
+      cur.papers += p.papers
+      cur.bookmarks += p.bookmarks
+      byMonth.set(p.month, cur)
+    }
+
+    return Array.from(byMonth.values())
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .slice(-Math.max(1, Number.isFinite(months) ? months : 12))
+  }
+
+  const formatMonth = (yyyyMm) => {
+    try {
+      const dt = new Date(`${yyyyMm}-01T00:00:00Z`)
+      return new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(dt)
+    } catch {
+      return yyyyMm
+    }
   }
 
   useEffect(() => {
@@ -59,7 +83,7 @@ export default function Dashboard() {
 
         const [statsRes, seriesRes] = await Promise.allSettled([
           getDashboardStats(),
-          getDashboardTimeseries(30)
+          getDashboardTimeseries({ granularity: 'month', months })
         ])
 
         const raw = statsRes.status === 'fulfilled' ? statsRes.value : null
@@ -90,7 +114,7 @@ export default function Dashboard() {
       mounted = false
       clearInterval(interval)
     }
-  }, [pollMs])
+  }, [pollMs, months])
 
   if (loading) return <div>Loading...</div>
 
@@ -137,7 +161,7 @@ export default function Dashboard() {
           disabled={refreshing}
           onClick={() => {
             setRefreshing(true)
-            Promise.allSettled([getDashboardStats(), getDashboardTimeseries(30)])
+            Promise.allSettled([getDashboardStats(), getDashboardTimeseries({ granularity: 'month', months })])
               .then(([statsRes, seriesRes]) => {
                 if (statsRes.status === 'fulfilled') setStats(normalizeStats(statsRes.value))
                 if (seriesRes.status === 'fulfilled') setPoints(normalizeTimeseries(seriesRes.value))
@@ -160,12 +184,12 @@ export default function Dashboard() {
         <StatCard title="Bookmarks" value={stats.bookmarks} />
       </div>
       <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-        <div className="text-lg font-medium mb-4">{points?.length ? 'Daily Overview (Last 30 days)' : 'Overview'}</div>
+        <div className="text-lg font-medium mb-4">{points?.length ? `Monthly Overview (Last ${months} months)` : 'Overview'}</div>
         <Bar
           data={
             points?.length
               ? {
-                  labels: points.map((p) => p.date),
+                  labels: points.map((p) => formatMonth(p.month)),
                   datasets: [
                     { label: 'Users', backgroundColor: '#4f46e5', data: points.map((p) => p.users) },
                     { label: 'Questions', backgroundColor: '#0ea5e9', data: points.map((p) => p.questions) },
