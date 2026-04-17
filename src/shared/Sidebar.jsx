@@ -10,6 +10,8 @@ const nav = [
   // { to: '/qotd', label: 'QOTD' },
   { to: '/banners', label: 'Banners' },
   { to: '/testimonials', label: 'Testimonials' },
+  { to: '/payment-gateway', label: 'Payment Gateway' },
+  { to: '/opinions', label: 'Opinions' },
   { to: '/subscriptions', label: 'Subscriptions' },
   { to: '/support-tickets', label: 'Support Tickets' },
   // { to: '/public-questions', label: 'Public' }

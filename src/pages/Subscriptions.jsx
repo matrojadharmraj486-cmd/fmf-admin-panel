@@ -11,6 +11,7 @@ const emptyForm = {
   description: '',
   features: [],
   price: '',
+  gstPercent: 0,
   durationDays: '',
   currency: 'INR',
   isActive: true
@@ -77,6 +78,7 @@ export default function Subscriptions() {
       description: item?.description || '',
       features,
       price: item?.price ?? '',
+      gstPercent: Number.isFinite(Number(item?.gstPercent)) ? Number(item.gstPercent) : 0,
       durationDays: item?.durationDays ?? '',
       currency: item?.currency || 'INR',
       isActive: typeof item?.isActive === 'boolean' ? item.isActive : true
@@ -117,6 +119,8 @@ export default function Subscriptions() {
     if (!form.name.trim()) return 'Please enter name'
     const priceValue = Number(form.price)
     if (!Number.isFinite(priceValue) || priceValue <= 0) return 'Price must be greater than 0'
+    const gstValue = Number(form.gstPercent)
+    if (![0, 5, 18].includes(gstValue)) return 'Please select a valid GST %'
     const durationValue = Number(form.durationDays)
     if (!Number.isFinite(durationValue) || durationValue <= 0) return 'Duration must be greater than 0'
     return ''
@@ -137,6 +141,7 @@ export default function Subscriptions() {
       description: form.description.trim(),
       features: form.features,
       price: Number(form.price),
+      gstPercent: Number(form.gstPercent),
       durationDays: Number(form.durationDays),
       currency: form.currency.trim() || 'INR',
       isActive: !!form.isActive
@@ -183,6 +188,13 @@ export default function Subscriptions() {
 
   const rows = useMemo(() => items, [items])
 
+  const basePriceValue = Number(form.price)
+  const gstPercentValue = Number(form.gstPercent)
+  const gstAmount = Number.isFinite(basePriceValue) && Number.isFinite(gstPercentValue)
+    ? (basePriceValue * gstPercentValue) / 100
+    : 0
+  const totalPlanPrice = Number.isFinite(basePriceValue) ? basePriceValue + gstAmount : 0
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -208,7 +220,9 @@ export default function Subscriptions() {
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-4 py-2 text-left">Name</th>
-                <th className="px-4 py-2 text-left">Price (₹)</th>
+                <th className="px-4 py-2 text-left">Base Price (INR)</th>
+                <th className="px-4 py-2 text-left">GST %</th>
+                <th className="px-4 py-2 text-left">Total Price (INR)</th>
                 <th className="px-4 py-2 text-left">Duration (days)</th>
                 <th className="px-4 py-2 text-left">Status</th>
                 <th className="px-4 py-2 text-left">CreatedAt</th>
@@ -222,7 +236,15 @@ export default function Subscriptions() {
                 return (
                   <tr key={id} className="bg-white dark:bg-gray-800">
                     <td className="px-4 py-2">{item?.name || '—'}</td>
-                    <td className="px-4 py-2">₹{item?.price ?? '—'}</td>
+                    <td className="px-4 py-2">INR {item?.price ?? '—'}</td>
+                    <td className="px-4 py-2">{Number.isFinite(Number(item?.gstPercent)) ? Number(item.gstPercent) : '—'}</td>
+                    <td className="px-4 py-2">
+                      INR {item?.totalPrice ?? (
+                        Number.isFinite(Number(item?.price)) && Number.isFinite(Number(item?.gstPercent))
+                          ? (Number(item.price) + (Number(item.price) * Number(item.gstPercent)) / 100).toFixed(2)
+                          : '—'
+                      )}
+                    </td>
                     <td className="px-4 py-2">{item?.durationDays ?? '—'}</td>
                     <td className="px-4 py-2">
                       <span className={item?.isActive ? 'text-emerald-600' : 'text-gray-500'}>
@@ -293,10 +315,31 @@ export default function Subscriptions() {
                 step="0.01"
                 value={form.price}
                 onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                placeholder="Price"
+                placeholder="Base Price"
                 className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
                 required
               />
+              <div className="space-y-1">
+                <label className="text-sm text-gray-600 dark:text-gray-300">GST %</label>
+                <select
+                  value={form.gstPercent}
+                  onChange={(e) => setForm((f) => ({ ...f, gstPercent: Number(e.target.value) }))}
+                  className="w-full rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+                >
+                  <option value={0}>0</option>
+                  <option value={5}>5</option>
+                  <option value={18}>18</option>
+                </select>
+              </div>
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-sm text-gray-600 dark:text-gray-300">Total Plan Price (INR)</label>
+                <input
+                  type="text"
+                  value={`INR ${Number.isFinite(totalPlanPrice) ? totalPlanPrice.toFixed(2) : '0.00'}`}
+                  readOnly
+                  className="w-full rounded border bg-gray-50 dark:bg-gray-900/40 border-gray-300 dark:border-gray-700 px-3 py-2"
+                />
+              </div>
               <input
                 type="number"
                 min="0"

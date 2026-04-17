@@ -14,6 +14,8 @@ import StructuredDetail from '../pages/StructuredDetail.jsx'
 import PrivacyPolicy from '../pages/PrivacyPolicy.jsx'
 import Subscriptions from '../pages/Subscriptions.jsx'
 import SupportTickets from '../pages/SupportTickets.jsx'
+import Opinions from '../pages/Opinions.jsx'
+import PaymentGatewaySettings from '../pages/PaymentGatewaySettings.jsx'
 import { ProtectedRoute } from '../routes/ProtectedRoute.jsx'
 import { AppLayout } from '../shared/AppLayout.jsx'
 
@@ -32,8 +34,10 @@ export function AppRouter() {
         <Route path="/qotd" element={<QOTD />} />
         <Route path="/banners" element={<Banners />} />
         <Route path="/testimonials" element={<Testimonials />} />
+        <Route path="/payment-gateway" element={<PaymentGatewaySettings />} />
         <Route path="/subscriptions" element={<Subscriptions />} />
         <Route path="/support-tickets" element={<SupportTickets />} />
+        <Route path="/opinions" element={<Opinions />} />
         <Route path="/structured-questions" element={<StructuredAdmin />} />
         <Route path="/structured-questions/:year/:part" element={<StructuredDetail />} />
         <Route path="/public-questions" element={<PublicQuestions />} />

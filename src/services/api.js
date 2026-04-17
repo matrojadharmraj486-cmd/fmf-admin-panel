@@ -219,6 +219,10 @@ export const updateSubscriptionStatus = async (id, isActive) => (
   await api.patch(`/api/admin/subscriptions/${id}/status`, { isActive })
 ).data
 
+// Payment Gateway (Admin)
+export const getPaymentGatewaySettings = async () => (await api.get('/api/admin/payment-gateway')).data
+export const updatePaymentGatewaySettings = async (payload) => (await api.put('/api/admin/payment-gateway', payload)).data
+
 // Support Tickets
 export const listSupportTickets = async (params = {}) => {
   const { data } = await api.get('/api/admin/support-tickets', { params })
@@ -227,5 +231,19 @@ export const listSupportTickets = async (params = {}) => {
 export const updateSupportTicket = async (id, payload) => (
   await api.patch(`/api/admin/support-tickets/${id}`, payload)
 ).data
+
+// Opinions
+export const listOpinions = async () => {
+  try {
+    const { data } = await api.get('/api/admin/opinions')
+    return data
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      const { data } = await api.get('/api/opinions')
+      return data
+    }
+    throw err
+  }
+}
 
 
