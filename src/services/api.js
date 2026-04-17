@@ -17,6 +17,7 @@ api.interceptors.response.use(
   (err) => {
     if (err?.response?.status === 401) {
       localStorage.removeItem('fmf_admin_token')
+      localStorage.removeItem('fm_admin_token')
       window.location.href = '/login'
     }
     return Promise.reject(err)
@@ -33,6 +34,34 @@ export const loginAdmin = async (email, password) => {
 export const getAdminStats = async () => {
   const { data } = await api.get('/admin/stats')
   return data
+}
+
+// Dashboard (robust stats fetch: supports multiple backend route variants)
+export const getDashboardStats = async () => {
+  try {
+    const { data } = await api.get('/admin/stats')
+    return data
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      const { data } = await api.get('/api/admin/stats')
+      return data
+    }
+    throw err
+  }
+}
+
+export const getDashboardTimeseries = async (days = 30) => {
+  const params = { days }
+  try {
+    const { data } = await api.get('/admin/stats/timeseries', { params })
+    return data
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      const { data } = await api.get('/api/admin/stats/timeseries', { params })
+      return data
+    }
+    throw err
+  }
 }
 
 // Users

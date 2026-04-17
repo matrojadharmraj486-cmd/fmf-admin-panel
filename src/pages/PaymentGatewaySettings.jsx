@@ -9,6 +9,7 @@ export default function PaymentGatewaySettings() {
   const [toasts, setToasts] = useState([])
 
   const [gateway, setGateway] = useState('razorpay')
+  const [mode, setMode] = useState('keyId') // backend field naming: keyId/saltId vs key/secret
   const [keyId, setKeyId] = useState('')
   const [saltId, setSaltId] = useState('')
   const [saltIdMasked, setSaltIdMasked] = useState('')
@@ -25,8 +26,10 @@ export default function PaymentGatewaySettings() {
       setLoading(true)
       const res = await getPaymentGatewaySettings()
       setGateway(res?.gateway || 'razorpay')
-      setKeyId(res?.keyId || '')
-      setSaltIdMasked(res?.saltIdMasked || '')
+      const resMode = res?.keyId != null || res?.saltIdMasked != null ? 'keyId' : (res?.key != null || res?.secretMasked != null ? 'key' : 'keyId')
+      setMode(resMode)
+      setKeyId(res?.keyId || res?.key || '')
+      setSaltIdMasked(res?.saltIdMasked || res?.secretMasked || '')
       setIsActive(!!res?.isActive)
       setSaltId('')
       setError('')
@@ -53,8 +56,8 @@ export default function PaymentGatewaySettings() {
       pushToast('error', msg)
       return
     }
-    if (!saltId.trim()) {
-      const msg = 'Salt ID (Secret) is required'
+    if (!saltId.trim() && !saltIdMasked) {
+      const msg = 'Secret is required'
       setError(msg)
       pushToast('error', msg)
       return
@@ -62,12 +65,20 @@ export default function PaymentGatewaySettings() {
 
     try {
       setSaving(true)
-      await updatePaymentGatewaySettings({
-        gateway: 'razorpay',
-        keyId: keyId.trim(),
-        saltId: saltId.trim(),
-        isActive: !!isActive
-      })
+      const payload =
+        mode === 'key'
+          ? {
+              key: keyId.trim(),
+              ...(saltId.trim() ? { secret: saltId.trim() } : {}),
+              isActive: !!isActive
+            }
+          : {
+              keyId: keyId.trim(),
+              ...(saltId.trim() ? { saltId: saltId.trim() } : {}),
+              isActive: !!isActive
+            }
+
+      await updatePaymentGatewaySettings(payload)
       pushToast('success', 'Payment gateway settings saved')
       await fetchSettings()
     } catch {
@@ -106,31 +117,26 @@ export default function PaymentGatewaySettings() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm text-gray-600 dark:text-gray-300">Key ID</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">Key</label>
               <input
                 type="text"
                 value={keyId}
                 onChange={(e) => setKeyId(e.target.value)}
                 className="w-full rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-                placeholder="Key ID"
+                placeholder="Key"
                 required
               />
             </div>
 
             <div className="space-y-1 md:col-span-2">
-              <label className="text-sm text-gray-600 dark:text-gray-300">Salt ID (Secret)</label>
-              {saltIdMasked ? (
-                <div className="text-xs text-gray-500">Current Secret: {saltIdMasked}</div>
-              ) : (
-                <div className="text-xs text-gray-500">Current Secret: Not set</div>
-              )}
+              <label className="text-sm text-gray-600 dark:text-gray-300">Secret</label>
+              <div className="text-xs text-gray-500">Secret is never shown. Paste a new secret only if you want to rotate it.</div>
               <input
                 type="password"
                 value={saltId}
                 onChange={(e) => setSaltId(e.target.value)}
                 className="w-full rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-                placeholder="Enter new secret"
-                required
+                placeholder={saltIdMasked ? saltIdMasked : 'Enter secret'}
                 autoComplete="new-password"
               />
             </div>
@@ -166,4 +172,3 @@ export default function PaymentGatewaySettings() {
     </div>
   )
 }
-

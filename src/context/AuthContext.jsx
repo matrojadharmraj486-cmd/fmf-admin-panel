@@ -1,9 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { loginAdmin } from '../services/api.js'
+import { clearToken as clearStoredToken, getToken as getStoredToken, setToken as setStoredToken } from '../services/authStorage.js'
 
 const AuthContext = createContext(null)
-
-const TOKEN_KEY = 'fmf_admin_token'
 
 function parseUser(token) {
   if (!token) return null
@@ -19,12 +18,12 @@ function parseUser(token) {
 }
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || '')
+  const [token, setToken] = useState(() => getStoredToken())
   const user = useMemo(() => parseUser(token), [token])
 
   useEffect(() => {
-    if (token) localStorage.setItem(TOKEN_KEY, token)
-    else localStorage.removeItem(TOKEN_KEY)
+    if (token) setStoredToken(token)
+    else clearStoredToken()
   }, [token])
 
   const login = async (email, password) => {
