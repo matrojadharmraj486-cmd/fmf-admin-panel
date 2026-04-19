@@ -73,7 +73,15 @@ export default function Questions() {
         <input className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 md:col-span-3" placeholder="Question text" value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} required />
         <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} required>
           <option value="">Year</option>
-          {['2027','2026','2025','2024','2023','2022'].map((y) => (
+          {[
+              '2011','2012','2013','2014','2015',
+  '2016','2017','2018','2019','2020',
+  '2021','2022','2023','2024','2025',
+  '2026',
+  '2027','2028','2029','2030','2031',
+  '2032','2033','2034','2035','2036',
+  '2037','2038','2039','2040','2041'
+          ]].map((y) => (
             <option key={y} value={y}>{y}</option>
           ))}
         </select>

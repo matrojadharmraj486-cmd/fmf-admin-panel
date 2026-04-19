@@ -404,7 +404,7 @@ export default function StructuredAdmin() {
           <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Object.values(groupByYearPart(list)).map((g) => (
               <div key={`${g.year}-${g.part}-${g.paper}`} className="relative rounded bg-white dark:bg-gray-800 shadow p-4 cursor-pointer hover:shadow-md transition" onClick={() => navigate(`/structured-questions/${g.year}/${g.part}`)}>
-                <div className="font-semibold">{g.year} • {String(g.part).toUpperCase()} {g.paper ? `� ${g.paper}` : ""}</div>
+                <div className="font-semibold">{g.year} • {String(g.part).toUpperCase()} {g.paper ? `� ${g.paper}` : ""}</div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">{g.countParents} parent • {g.countSubs} sub</div>
                 <button
                   type="button"
@@ -430,7 +430,15 @@ export default function StructuredAdmin() {
                 <label className="block text-sm">Year</label>
                 <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.year} onChange={(e) => setCreateForm((s) => ({ ...s, year: e.target.value }))} required>
                   <option value="">Select year</option>
-                  {['2027','2026','2025','2024','2023','2022'].map((y) => (
+                  {[
+                      '2011','2012','2013','2014','2015',
+  '2016','2017','2018','2019','2020',
+  '2021','2022','2023','2024','2025',
+  '2026',
+  '2027','2028','2029','2030','2031',
+  '2032','2033','2034','2035','2036',
+  '2037','2038','2039','2040','2041'
+                  ]].map((y) => (
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
