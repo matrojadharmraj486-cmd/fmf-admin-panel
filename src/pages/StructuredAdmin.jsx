@@ -438,7 +438,7 @@ export default function StructuredAdmin() {
   '2027','2028','2029','2030','2031',
   '2032','2033','2034','2035','2036',
   '2037','2038','2039','2040','2041'
-                  ]].map((y) => (
+].map((y) => (
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
