@@ -24,6 +24,7 @@ export default function StructuredAdmin() {
   const [year, setYear] = useState('')
   const [part, setPart] = useState('')
   const [paper, setPaper] = useState('')
+  console
   const [years, setYears] = useState([])
   const [parts, setParts] = useState([])
   const [papers, setPapers] = useState([])
