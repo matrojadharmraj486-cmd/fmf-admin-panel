@@ -16,6 +16,7 @@ export default function PaymentGatewaySettings() {
     secretMasked: '',
     description: '',
     isActive: false,
+    isConfigured: false,
     updatedAt: ''
   })
   const [form, setForm] = useState({
@@ -37,26 +38,40 @@ export default function PaymentGatewaySettings() {
       res?.isActive ??
       res?.active ??
       res?.is_active ??
-      res?.status ??
       res?.enabled ??
       false
     return !!val
   }
 
+  const unwrapConfig = (res) => {
+    if (!res) return {}
+    // backend might return { status, message, data: { ...config } }
+    const hasTopLevelConfigFields =
+      res?.gateway != null ||
+      res?.keyId != null ||
+      res?.key != null ||
+      res?.saltIdMasked != null ||
+      res?.secretMasked != null
+    if (!hasTopLevelConfigFields && res?.data && typeof res.data === 'object') return res.data
+    return res
+  }
+
   const fetchSettings = async () => {
     try {
       setLoading(true)
-      const res = await getPaymentGatewaySettings()
-      const gateway = res?.gateway || 'razorpay'
-      const resMode = res?.keyId != null || res?.saltIdMasked != null ? 'keyId' : (res?.key != null || res?.secretMasked != null ? 'key' : 'keyId')
+      const raw = await getPaymentGatewaySettings()
+      const cfg = unwrapConfig(raw)
+      const gateway = cfg?.gateway || 'razorpay'
+      const resMode = cfg?.keyId != null || cfg?.saltIdMasked != null ? 'keyId' : (cfg?.key != null || cfg?.secretMasked != null ? 'key' : 'keyId')
       setMode(resMode)
-      const key = res?.keyId || res?.key || ''
-      const secretMasked = res?.saltIdMasked || res?.secretMasked || ''
-      const description = res?.description || ''
-      const isActive = pickActive(res)
-      const updatedAt = res?.updatedAt || res?.updated_at || res?.createdAt || res?.created_at || ''
+      const key = cfg?.keyId || cfg?.key || ''
+      const secretMasked = cfg?.saltIdMasked || cfg?.secretMasked || ''
+      const description = cfg?.description || ''
+      const isActive = pickActive(cfg)
+      const isConfigured = !!cfg?.isConfigured
+      const updatedAt = cfg?.updatedAt || cfg?.updated_at || cfg?.createdAt || cfg?.created_at || ''
 
-      setSaved({ gateway, key, secretMasked, description, isActive, updatedAt })
+      setSaved({ gateway, key, secretMasked, description, isActive, isConfigured, updatedAt })
       setForm({
         gateway,
         key,
@@ -249,6 +264,10 @@ export default function PaymentGatewaySettings() {
                   <tr className="border-b border-gray-100 dark:border-gray-700">
                     <td className="text-gray-600 dark:text-gray-300 w-40">Gateway</td>
                     <td className="font-medium">{saved.gateway || '-'}</td>
+                  </tr>
+                  <tr className="border-b border-gray-100 dark:border-gray-700">
+                    <td className="text-gray-600 dark:text-gray-300">Configured</td>
+                    <td className="font-medium">{saved.isConfigured ? 'Yes' : 'No'}</td>
                   </tr>
                   <tr className="border-b border-gray-100 dark:border-gray-700">
                     <td className="text-gray-600 dark:text-gray-300">Key</td>
