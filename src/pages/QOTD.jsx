@@ -17,10 +17,6 @@ export default function Qotd() {
     const path = s.startsWith('/') ? s : `/${s}`
     return `${base}${path}`
   }
-  const htmlAbs = (html) => {
-    if (!html) return ''
-    return String(html).replace(/\bsrc=(['"])(?!https?:\/\/)([^'"]+)\1/gi, (_m, q, src) => `src=${q}${abs(src)}${q}`)
-  }
 
   useEffect(() => {
     let mounted = true
@@ -67,8 +63,8 @@ export default function Qotd() {
         <div className="space-y-3">
           {current && (
             <div className="p-4 rounded bg-white dark:bg-gray-800 shadow">
-              <div className="font-medium" dangerouslySetInnerHTML={{ __html: htmlAbs(current.question || '') }} />
-              {current.answerType === 'text' && current.answer && <div className="mt-2 text-sm" dangerouslySetInnerHTML={{ __html: htmlAbs(current.answer) }} />}
+              <div className="font-medium" dangerouslySetInnerHTML={{ __html: current.question || '' }} />
+              {current.answerType === 'text' && current.answer && <div className="mt-2 text-sm" dangerouslySetInnerHTML={{ __html: current.answer }} />}
               {current.answerType === 'image' && (current.answerImage || current.answerImageUrl) && <img alt="qotd" src={abs(current.answerImage || current.answerImageUrl)} className="mt-2 max-h-40 object-contain" />}
             </div>
           )}

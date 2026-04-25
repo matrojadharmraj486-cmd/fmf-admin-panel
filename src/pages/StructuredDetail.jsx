@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   getStructuredQuestionsFiltered,
-  api,
   updateStructuredParent,
   updateStructuredSub,
   deleteStructuredParent,
@@ -35,23 +34,14 @@ export default function StructuredDetail() {
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null, title: '' })
   const [qotdSavingId, setQotdSavingId] = useState(null)
 
-  const baseUrl = import.meta?.env?.VITE_API_BASE_URL || api?.defaults?.baseURL || ''
+  const baseUrl = import.meta?.env?.VITE_API_BASE_URL || ''
   const abs = (url) => {
     if (!url) return ''
     const s = String(url)
-    if (s.startsWith('http') || s.startsWith('data:') || s.startsWith('blob:')) return s
+    if (s.startsWith('http')) return s
     const base = String(baseUrl).replace(/\/+$/, '')
     const path = s.startsWith('/') ? s : `/${s}`
     return `${base}${path}`
-  }
-
-  const htmlAbs = (html) => {
-    if (!html) return ''
-    return String(html).replace(/\bsrc=(['"])([^'"]+)\1/gi, (m, q, src) => {
-      if (/^(https?:\/\/|data:|blob:)/i.test(src)) return m
-      if (src.startsWith('#')) return m
-      return `src=${q}${abs(src)}${q}`
-    })
   }
 
   const answerArrayToHtml = (arr) => {
@@ -305,7 +295,7 @@ export default function StructuredDetail() {
                 <div className="space-y-1">
                   <div className="font-semibold text-lg leading-7">
                     {parent.questionId && <span className="mr-2 text-indigo-700 dark:text-indigo-300">{parent.questionId}.</span>}
-                    <span dangerouslySetInnerHTML={{ __html: htmlAbs(parent.question_text) }} />
+                    <span dangerouslySetInnerHTML={{ __html: parent.question_text }} />
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                     <span>{parent.year} | {String(parent.part).toUpperCase()}</span>
@@ -331,7 +321,7 @@ export default function StructuredDetail() {
                     <div className="mt-2">
                       {(parent.answerType || 'text') === 'text' && Array.isArray(parent.answer) && (
                         <ul className="list-disc ml-5 space-y-1">
-                          {parent.answer.map((a, idx) => <li key={idx} dangerouslySetInnerHTML={{ __html: htmlAbs(a) }} />)}
+                          {parent.answer.map((a, idx) => <li key={idx} dangerouslySetInnerHTML={{ __html: a }} />)}
                         </ul>
                       )}
                       {(parent.answerType || 'text') === 'image' && parent.answerImage && (
@@ -345,10 +335,10 @@ export default function StructuredDetail() {
                     <div className="text-sm text-gray-500 dark:text-gray-400">Main Question Answer</div>
                     <div className="mt-2">
                       {parent.mainQuestionAnswer.length === 1 ? (
-                        <div dangerouslySetInnerHTML={{ __html: htmlAbs(parent.mainQuestionAnswer[0] || '') }} />
+                        <div dangerouslySetInnerHTML={{ __html: parent.mainQuestionAnswer[0] || '' }} />
                       ) : (
                         <ul className="list-disc ml-5 space-y-1">
-                          {parent.mainQuestionAnswer.map((a, idx) => <li key={idx} dangerouslySetInnerHTML={{ __html: htmlAbs(a) }} />)}
+                          {parent.mainQuestionAnswer.map((a, idx) => <li key={idx} dangerouslySetInnerHTML={{ __html: a }} />)}
                         </ul>
                       )}
                     </div>
@@ -358,14 +348,14 @@ export default function StructuredDetail() {
                   <div key={`${sub.id}-${sIdx}`} className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/40">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="font-medium" dangerouslySetInnerHTML={{ __html: htmlAbs(sub.text) }} />
+                        <div className="font-medium" dangerouslySetInnerHTML={{ __html: sub.text }} />
                         <div className="text-sm text-gray-500 dark:text-gray-400">{String(sub.part).toUpperCase()} | {sub.answerType}</div>
                       </div>
                     </div>
                     <div className="mt-2">
                       {sub.answerType === 'text' && Array.isArray(sub.answer) && (
                         <ul className="list-disc ml-5 space-y-1">
-                          {sub.answer.map((a, idx) => <li key={idx} dangerouslySetInnerHTML={{ __html: htmlAbs(a) }} />)}
+                          {sub.answer.map((a, idx) => <li key={idx} dangerouslySetInnerHTML={{ __html: a }} />)}
                         </ul>
                       )}
                       {sub.answerType === 'image' && sub.answerImage && (
@@ -417,9 +407,14 @@ export default function StructuredDetail() {
                 <div className="grid md:grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <label className="block text-sm">Answer Type</label>
-                    <div className="rounded border px-3 py-2 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full">
-                      {editState.parentAnswerType === 'image' ? 'Image' : 'Text'}
-                    </div>
+                    <select
+                      value={editState.parentAnswerType}
+                      onChange={(e) => setEditState((s) => ({ ...s, parentAnswerType: e.target.value }))}
+                      className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                    >
+                      <option value="text">Text</option>
+                      <option value="image">Image</option>
+                    </select>
                   </div>
 
                   {editState.parentAnswerType === 'text' ? (
@@ -478,9 +473,14 @@ export default function StructuredDetail() {
                   <div className="grid md:grid-cols-3 gap-3">
                     <div className="space-y-2">
                       <label className="block text-sm">Answer Type</label>
-                      <div className="rounded border px-3 py-2 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full">
-                        {sub.answerType === 'image' ? 'Image' : 'Text'}
-                      </div>
+                      <select
+                        value={sub.answerType}
+                        onChange={(e) => updateEditSub(sub.sid, { answerType: e.target.value })}
+                        className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                      >
+                        <option value="text">Text</option>
+                        <option value="image">Image</option>
+                      </select>
                     </div>
 
                     {sub.answerType === 'text' ? (
