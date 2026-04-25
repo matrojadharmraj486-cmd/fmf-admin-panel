@@ -265,7 +265,8 @@ export default function StructuredAdmin() {
     setOk('')
     try {
       const res = await uploadEditorImage(file)
-      const url = res?.url || res?.imageUrl || res?.absoluteUrl
+      const payload = (res?.data && typeof res.data === 'object') ? res.data : res
+      const url = payload?.url || payload?.imageUrl || payload?.absoluteUrl || payload?.path || payload?.location
       if (url) setCreateForm((prev) => ({ ...prev, answerImageUrl: url }))
     } catch (err) {
       setError(err?.response?.data?.message || 'Image upload failed')
