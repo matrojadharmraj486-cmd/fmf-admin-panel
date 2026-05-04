@@ -198,8 +198,8 @@ export default function SupportTickets() {
                   <HeaderCell>Status</HeaderCell>
                   <HeaderCell>User Name</HeaderCell>
                   <HeaderCell>User Email</HeaderCell>
+                  <HeaderCell>Phone</HeaderCell>
                   <HeaderCell>Created At</HeaderCell>
-                  <HeaderCell>Assigned To</HeaderCell>
                   <HeaderCell align="right">Action</HeaderCell>
                 </tr>
               </thead>
@@ -213,8 +213,8 @@ export default function SupportTickets() {
                     <BodyCell><StatusBadge status={getStatus(ticket)} /></BodyCell>
                     <BodyCell>{getUserName(ticket)}</BodyCell>
                     <BodyCell>{getUserEmail(ticket)}</BodyCell>
+                    <BodyCell>{getUserPhone(ticket) || '-'}</BodyCell>
                     <BodyCell>{formatDate(getCreatedAt(ticket))}</BodyCell>
-                    <BodyCell>{getAssignedToName(ticket) || '-'}</BodyCell>
                     <BodyCell align="right">
                       <button onClick={() => openDetail(ticket)} className="rounded bg-gray-900 px-3 py-1 text-white dark:bg-gray-700">
                         View
@@ -241,7 +241,7 @@ export default function SupportTickets() {
                   <MobileMeta label="Priority" value={formatLabel(getPriority(ticket))} />
                   <MobileMeta label="User" value={getUserName(ticket)} />
                   <MobileMeta label="Email" value={getUserEmail(ticket)} />
-                  <MobileMeta label="Assigned To" value={getAssignedToName(ticket) || '-'} />
+                  <MobileMeta label="Phone" value={getUserPhone(ticket) || '-'} />
                   <MobileMeta label="Created" value={formatDate(getCreatedAt(ticket))} />
                 </div>
                 <div className="mt-4">
@@ -305,7 +305,7 @@ export default function SupportTickets() {
                   <div className="space-y-2 text-sm">
                     <DetailRow label="Name" value={getUserName(selectedTicket)} />
                     <DetailRow label="Email" value={getUserEmail(selectedTicket)} />
-                    <DetailRow label="Phone" value={pickValue(getUser(selectedTicket), ['phone', 'mobile', 'contactNumber']) || '-'} />
+                    <DetailRow label="Phone" value={getUserPhone(selectedTicket) || '-'} />
                   </div>
                 </section>
 
@@ -541,6 +541,12 @@ function getUserEmail(ticket) {
   const user = getUser(ticket)
   if (typeof user === 'string') return '-'
   return pickValue(user, ['email']) || pickValue(ticket, ['userEmail']) || '-'
+}
+
+function getUserPhone(ticket) {
+  const user = getUser(ticket)
+  if (typeof user === 'string') return ''
+  return pickValue(user, ['mobileNumber', 'phone', 'mobile', 'contactNumber']) || ''
 }
 
 function getAssignedTo(ticket) {

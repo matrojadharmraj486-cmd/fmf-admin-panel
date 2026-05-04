@@ -75,6 +75,14 @@ export const deleteUser = async (id) => (await api.delete(`/admin/users/${id}`))
 export const subscribeUser = async (id) => (await api.put(`/api/admin/users/${id}/subscription`)).data
 export const unsubscribeUser = async (id) => (await api.post(`/admin/users/${id}/unsubscribe`)).data
 
+// Notifications (Admin)
+export const sendNotification = async ({ userId, title, body, data = {} }) => (
+  await api.post('/api/admin/notifications/send', { userId, title, body, data })
+).data
+
+// Payments (Admin)
+export const listPayments = async (params = {}) => (await api.get('/api/admin/payments', { params })).data
+
 // Questions
 export const createQuestion = async ({ text, year, part, answerType, answerText, answerImage }) => {
   if (answerType === 'image' && answerImage) {
@@ -333,4 +341,3 @@ export const deleteOpinion = async (id) => (await api.delete(`/api/admin/opinion
 export const bulkDeleteOpinions = async (ids = []) => (
   await api.post('/api/admin/opinions/bulk-delete', { ids })
 ).data
-
