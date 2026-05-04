@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { listOpinions } from '../services/api.js'
+import { bulkDeleteOpinions, deleteOpinion, listOpinions } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
 
 const PAGE_SIZE = 10
@@ -8,13 +8,17 @@ export default function Opinions() {
   const [opinions, setOpinions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [ok, setOk] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [selectedIds, setSelectedIds] = useState([])
+  const [bulkConfirm, setBulkConfirm] = useState({ open: false })
 
   const fetchOpinions = async () => {
     try {
       setLoading(true)
       setError('')
+      setOk('')
       const res = await listOpinions()
       setOpinions(toArray(res))
     } catch (err) {
@@ -59,6 +63,73 @@ export default function Opinions() {
     if (page !== safePage) setPage(safePage)
   }, [page, safePage])
 
+  useEffect(() => {
+    // Keep selection valid after filtering/refetch.
+    const allowed = new Set(sorted.map(getId).filter(Boolean))
+    setSelectedIds((prev) => prev.filter((id) => allowed.has(id)))
+  }, [sorted])
+
+  const isSelected = (id) => selectedIds.includes(id)
+
+  const toggleSelected = (id, checked) => {
+    if (!id) return
+    setSelectedIds((prev) => {
+      if (checked) return prev.includes(id) ? prev : [...prev, id]
+      return prev.filter((x) => x !== id)
+    })
+  }
+
+  const currentPageIds = useMemo(
+    () => currentItems.map(getId).filter(Boolean),
+    [currentItems]
+  )
+
+  const allPageSelected = currentPageIds.length > 0 && currentPageIds.every((id) => selectedIds.includes(id))
+  const somePageSelected = currentPageIds.some((id) => selectedIds.includes(id)) && !allPageSelected
+
+  const toggleSelectAllPage = (checked) => {
+    setSelectedIds((prev) => {
+      const set = new Set(prev)
+      for (const id of currentPageIds) {
+        if (checked) set.add(id)
+        else set.delete(id)
+      }
+      return Array.from(set)
+    })
+  }
+
+  const onDeleteRow = async (id) => {
+    if (!id) return
+    setError('')
+    setOk('')
+    try {
+      await deleteOpinion(id)
+      setOk('Deleted 1')
+      await fetchOpinions()
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to delete opinion')
+    }
+  }
+
+  const openBulkConfirm = () => setBulkConfirm({ open: true })
+  const closeBulkConfirm = () => setBulkConfirm({ open: false })
+
+  const confirmBulkDelete = async () => {
+    if (selectedIds.length === 0) return
+    setError('')
+    setOk('')
+    try {
+      const data = await bulkDeleteOpinions(selectedIds)
+      const deleted = data?.deleted ?? data?.data?.deleted ?? selectedIds.length
+      setOk(`Deleted ${deleted}`)
+      closeBulkConfirm()
+      setSelectedIds([])
+      await fetchOpinions()
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to bulk delete opinions')
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -75,9 +146,22 @@ export default function Opinions() {
           placeholder="Search by name or opinion"
           className="w-full rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900 md:max-w-md"
         />
+        <button
+          onClick={openBulkConfirm}
+          disabled={selectedIds.length === 0}
+          className="rounded bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+        >
+          Delete Selected
+        </button>
+        {selectedIds.length > 0 && (
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            {selectedIds.length} selected
+          </div>
+        )}
       </div>
 
       {error && <div className="text-sm text-red-600">{error}</div>}
+      {ok && <div className="text-sm text-green-600">{ok}</div>}
 
       {loading ? (
         <Loader />
@@ -91,17 +175,44 @@ export default function Opinions() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
+                  <HeaderCell>
+                    <input
+                      type="checkbox"
+                      checked={allPageSelected}
+                      ref={(el) => {
+                        if (!el) return
+                        el.indeterminate = somePageSelected
+                      }}
+                      onChange={(e) => toggleSelectAllPage(e.target.checked)}
+                    />
+                  </HeaderCell>
                   <HeaderCell>Name</HeaderCell>
                   <HeaderCell>Opinion</HeaderCell>
                   <HeaderCell>Created At</HeaderCell>
+                  <HeaderCell>Actions</HeaderCell>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {currentItems.map((item) => (
                   <tr key={getId(item)} className="bg-white dark:bg-gray-800">
+                    <BodyCell>
+                      <input
+                        type="checkbox"
+                        checked={isSelected(getId(item))}
+                        onChange={(e) => toggleSelected(getId(item), e.target.checked)}
+                      />
+                    </BodyCell>
                     <BodyCell>{getName(item)}</BodyCell>
                     <BodyCell>{getOpinion(item)}</BodyCell>
                     <BodyCell>{formatDate(getCreatedAtRaw(item))}</BodyCell>
+                    <BodyCell>
+                      <button
+                        onClick={() => onDeleteRow(getId(item))}
+                        className="rounded bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
+                    </BodyCell>
                   </tr>
                 ))}
               </tbody>
@@ -111,9 +222,24 @@ export default function Opinions() {
           <div className="grid gap-3 lg:hidden">
             {currentItems.map((item) => (
               <div key={getId(item)} className="rounded-xl bg-white p-4 shadow dark:bg-gray-800">
-                <div className="space-y-2">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Name</div>
-                  <div className="font-semibold">{getName(item)}</div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-2">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Name</div>
+                    <div className="font-semibold">{getName(item)}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={isSelected(getId(item))}
+                      onChange={(e) => toggleSelected(getId(item), e.target.checked)}
+                    />
+                    <button
+                      onClick={() => onDeleteRow(getId(item))}
+                      className="rounded bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
                 <div className="mt-3 space-y-2">
                   <div className="text-sm text-gray-500 dark:text-gray-400">Opinion</div>
@@ -134,6 +260,24 @@ export default function Opinions() {
             onJump={(p) => setPage(p)}
           />
         </>
+      )}
+
+      {bulkConfirm.open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-md p-5 space-y-4">
+            <div className="font-semibold text-lg">Confirm Delete</div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Delete {selectedIds.length} selected {selectedIds.length === 1 ? 'opinion' : 'opinions'}?
+            </p>
+            <p className="text-sm text-red-600">This action cannot be undone.</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={closeBulkConfirm} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
+              <button onClick={confirmBulkDelete} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

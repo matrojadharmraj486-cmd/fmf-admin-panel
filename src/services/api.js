@@ -170,6 +170,60 @@ export const updateTestimonial = async (id, { photo, name, designation, location
   return (await api.put(`/api/admin/testimonials/${id}`, payload)).data
 }
 
+// FAQs
+export const listFaqsAdmin = async () => {
+  try {
+    return (await api.get('/api/admin/faqs')).data
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      return (await api.get('/api/admin/faq')).data
+    }
+    throw err
+  }
+}
+export const createFaq = async (payload) => {
+  try {
+    return (await api.post('/api/admin/faqs', payload)).data
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      return (await api.post('/api/admin/faq', payload)).data
+    }
+    throw err
+  }
+}
+export const updateFaq = async (id, payload) => {
+  try {
+    return (await api.put(`/api/admin/faqs/${id}`, payload)).data
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      return (await api.put(`/api/admin/faq/${id}`, payload)).data
+    }
+    throw err
+  }
+}
+export const deleteFaq = async (id) => {
+  try {
+    return (await api.delete(`/api/admin/faqs/${id}`)).data
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      return (await api.delete(`/api/admin/faq/${id}`)).data
+    }
+    throw err
+  }
+}
+
+// FAQs (Public)
+export const listFaqsPublic = async () => {
+  try {
+    return (await api.get('/api/faqs')).data
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      return (await api.get('/api/faq')).data
+    }
+    throw err
+  }
+}
+
 // Local mock (fallback optionally)
 export const mockApi = {
   getStats: async () => ({
@@ -275,4 +329,8 @@ export const listOpinions = async () => {
   }
 }
 
+export const deleteOpinion = async (id) => (await api.delete(`/api/admin/opinions/${id}`)).data
+export const bulkDeleteOpinions = async (ids = []) => (
+  await api.post('/api/admin/opinions/bulk-delete', { ids })
+).data
 
