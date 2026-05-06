@@ -75,6 +75,31 @@ export const deleteUser = async (id) => (await api.delete(`/admin/users/${id}`))
 export const subscribeUser = async (id) => (await api.put(`/api/admin/users/${id}/subscription`)).data
 export const unsubscribeUser = async (id) => (await api.post(`/admin/users/${id}/unsubscribe`)).data
 
+export const getAdminUser = async (id) => {
+  try {
+    return (await api.get(`/api/admin/users/${id}`)).data
+  } catch (err) {
+    if (err?.response?.status === 404) return (await api.get(`/admin/users/${id}`)).data
+    throw err
+  }
+}
+export const updateAdminUser = async (id, payload) => {
+  try {
+    return (await api.put(`/api/admin/users/${id}`, payload)).data
+  } catch (err) {
+    if (err?.response?.status === 404) return (await api.put(`/admin/users/${id}`, payload)).data
+    throw err
+  }
+}
+export const deleteAdminUser = async (id) => {
+  try {
+    return (await api.delete(`/api/admin/users/${id}`)).data
+  } catch (err) {
+    if (err?.response?.status === 404) return (await api.delete(`/admin/users/${id}`)).data
+    throw err
+  }
+}
+
 // Notifications (Admin)
 export const sendNotification = async ({ userId, title, body, data = {} }) => (
   await api.post('/api/admin/notifications/send', { userId, title, body, data })
@@ -82,6 +107,10 @@ export const sendNotification = async ({ userId, title, body, data = {} }) => (
 
 // Payments (Admin)
 export const listPayments = async (params = {}) => (await api.get('/api/admin/payments', { params })).data
+
+// Orders (Admin)
+export const listOrders = async (params = {}) => (await api.get('/api/admin/orders', { params })).data
+export const getOrderById = async (id) => (await api.get(`/api/admin/orders/${id}`)).data
 
 // Questions
 export const createQuestion = async ({ text, year, part, answerType, answerText, answerImage }) => {

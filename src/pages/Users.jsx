@@ -3,11 +3,13 @@ import {
   listUsers as apiList,
   blockUser,
   unblockUser,
-  deleteUser as apiDelete,
+  deleteAdminUser,
+  getAdminUser,
   subscribeUser,
   unsubscribeUser,
   listPayments,
-  sendNotification
+  sendNotification,
+  updateAdminUser
 } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
 
@@ -28,6 +30,20 @@ export default function Users() {
   const [notifyOpen, setNotifyOpen] = useState(false)
   const [notifySending, setNotifySending] = useState(false)
   const [notifyForm, setNotifyForm] = useState({ title: '', body: '', dataText: '{}' })
+
+  const [editOpen, setEditOpen] = useState(false)
+  const [editLoading, setEditLoading] = useState(false)
+  const [editSaving, setEditSaving] = useState(false)
+  const [editOriginal, setEditOriginal] = useState(null)
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    email: '',
+    mobileNumber: '',
+    isVerified: false,
+    isActive: true,
+    isDeleted: false
+  })
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: '', name: '' })
 
   useEffect(() => {
     let mounted = true
@@ -50,6 +66,11 @@ export default function Users() {
     console.log("list", list)
     return list.filter((u) => u.fullName.toLowerCase().includes(query.toLowerCase()) || u.email.toLowerCase().includes(query.toLowerCase()))
   }, [list, query])
+
+  const refetchUsers = async () => {
+    const res = await apiList(query || '')
+    setList(res?.data || [])
+  }
 
   const openDetails = (u) => {
     setSelectedUser(u)
@@ -146,18 +167,6 @@ export default function Users() {
       setBusy({ id: null, action: '' })
     }
   }
-  const remove = async (_id) => {
-    try {
-      setOk(''); setError('')
-      setBusy({ id: _id, action: 'delete' })
-      await apiDelete(_id)
-      setList((prev) => prev.filter((u) => u._id !== _id))
-    } catch {
-      setError('Failed to delete user')
-    } finally {
-      setBusy({ id: null, action: '' })
-    }
-  }
   const toggleSub = async (_id, subscribed) => {
     try {
       setOk(''); setError('')
@@ -167,6 +176,115 @@ export default function Users() {
       setList((prev) => prev.map((u) => (u._id === _id ? { ...u, subscribed: !u.subscribed } : u)))
     } catch {
       setError('Failed to update subscription')
+    } finally {
+      setBusy({ id: null, action: '' })
+    }
+  }
+
+  const openEdit = async (u) => {
+    const id = u?._id
+    if (!id) return
+    setOk(''); setError('')
+    setEditOpen(true)
+    setEditLoading(true)
+    try {
+      const res = await getAdminUser(id)
+      const user = extractUser(res) || u
+      const normalized = {
+        _id: user?._id || id,
+        fullName: user?.fullName || '',
+        email: user?.email || '',
+        mobileNumber: user?.mobileNumber || user?.phone || user?.mobile || '',
+        isVerified: Boolean(pickBool(user, ['isVerified', 'verified'])),
+        isActive: (pickBool(user, ['isActive', 'active']) ?? true),
+        isDeleted: Boolean(pickBool(user, ['isDeleted', 'deleted']))
+      }
+      setEditOriginal(normalized)
+      setEditForm({
+        fullName: normalized.fullName,
+        email: normalized.email,
+        mobileNumber: normalized.mobileNumber,
+        isVerified: normalized.isVerified,
+        isActive: normalized.isActive,
+        isDeleted: normalized.isDeleted
+      })
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to load user')
+      setEditOpen(false)
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
+  const closeEdit = () => {
+    setEditOpen(false)
+    setEditLoading(false)
+    setEditSaving(false)
+    setEditOriginal(null)
+  }
+
+  const buildDiff = (original, next) => {
+    const diff = {}
+    if (!original) return diff
+    const fields = ['fullName', 'email', 'mobileNumber', 'isVerified', 'isActive', 'isDeleted']
+    for (const f of fields) {
+      const a = original?.[f]
+      const b = next?.[f]
+      const same = typeof b === 'string' ? String(a || '') === b : Boolean(a) === Boolean(b)
+      if (!same) diff[f] = b
+    }
+    return diff
+  }
+
+  const saveEdit = async () => {
+    if (!editOriginal?._id) return
+    setOk(''); setError('')
+    const diff = buildDiff(editOriginal, editForm)
+    if (Object.keys(diff).length === 0) {
+      setOk('No changes')
+      closeEdit()
+      return
+    }
+    try {
+      setEditSaving(true)
+      await updateAdminUser(editOriginal._id, diff)
+      setOk('User updated')
+      closeEdit()
+      await refetchUsers()
+    } catch (err) {
+      if (err?.response?.status === 409) {
+        const msg = String(err?.response?.data?.message || '').toLowerCase()
+        if (msg.includes('email')) return setError('email already exists')
+        if (msg.includes('mobile')) return setError('mobileNumber already exists')
+        return setError('Duplicate value already exists')
+      }
+      setError(err?.response?.data?.message || 'Failed to update user')
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  const openDeleteConfirm = (u) => {
+    const id = u?._id
+    if (!id) return
+    setOk(''); setError('')
+    setDeleteConfirm({ open: true, id, name: u?.fullName || u?.email || 'this user' })
+  }
+
+  const closeDeleteConfirm = () => setDeleteConfirm({ open: false, id: '', name: '' })
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.id) return
+    setOk(''); setError('')
+    try {
+      setBusy({ id: deleteConfirm.id, action: 'delete' })
+      await deleteAdminUser(deleteConfirm.id)
+      setOk('User deleted')
+      closeDeleteConfirm()
+      await refetchUsers()
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Failed to delete user'
+      setError(msg)
     } finally {
       setBusy({ id: null, action: '' })
     }
@@ -193,6 +311,9 @@ export default function Users() {
             <tr>
               <th className="px-4 py-2 text-left">Name</th>
               <th className="px-4 py-2 text-left">Email</th>
+              <th className="px-4 py-2 text-left">isVerified</th>
+              <th className="px-4 py-2 text-left">isActive</th>
+              <th className="px-4 py-2 text-left">isDeleted</th>
               <th className="px-4 py-2 text-left">Status</th>
               <th className="px-4 py-2 text-left">Subscription</th>
               <th className="px-4 py-2 text-right">Actions</th>
@@ -203,11 +324,17 @@ export default function Users() {
               <tr key={u._id} className="bg-white dark:bg-gray-800">
                 <td className="px-4 py-2">{u.fullName}</td>
                 <td className="px-4 py-2">{u.email}</td>
+                <td className="px-4 py-2">{pickBool(u, ['isVerified', 'verified']) ? 'Yes' : 'No'}</td>
+                <td className="px-4 py-2">{pickBool(u, ['isActive', 'active']) ?? true ? 'Yes' : 'No'}</td>
+                <td className="px-4 py-2">{pickBool(u, ['isDeleted', 'deleted']) ? 'Yes' : 'No'}</td>
                 <td className="px-4 py-2">{u.blocked ? 'Blocked' : 'Active'}</td>
                 <td className="px-4 py-2">{u.subscribed ? 'Subscribed' : 'Unsubscribed'}</td>
                 <td className="px-4 py-2 text-right space-x-2">
                   <button onClick={() => openDetails(u)} className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600">
                     Details
+                  </button>
+                  <button onClick={() => openEdit(u)} className="px-3 py-1 rounded bg-indigo-600 text-white disabled:opacity-60">
+                    Edit
                   </button>
                   <button disabled={busy.id === u._id} onClick={() => toggleBlock(u._id, u.blocked)} className="px-3 py-1 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
                     {busy.id === u._id && busy.action === 'block' ? 'Updating...' : (u.blocked ? 'Unblock' : 'Block')}
@@ -215,7 +342,7 @@ export default function Users() {
                   <button disabled={busy.id === u._id} onClick={() => toggleSub(u._id, u.subscribed)} className="px-3 py-1 rounded bg-indigo-600 text-white disabled:opacity-60">
                     {busy.id === u._id && busy.action === 'sub' ? 'Updating...' : (u.subscribed ? 'Unsubscribe' : 'Subscribe')}
                   </button>
-                  <button disabled={busy.id === u._id} onClick={() => remove(u._id)} className="px-3 py-1 rounded bg-red-600 text-white disabled:opacity-60">
+                  <button disabled={busy.id === u._id && busy.action === 'delete'} onClick={() => openDeleteConfirm(u)} className="px-3 py-1 rounded bg-red-600 text-white disabled:opacity-60">
                     {busy.id === u._id && busy.action === 'delete' ? 'Deleting...' : 'Delete'}
                   </button>
                 </td>
@@ -344,6 +471,100 @@ export default function Users() {
           </div>
         </div>
       )}
+
+      {editOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-2xl p-5 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="font-semibold text-lg">Edit User</div>
+              <button onClick={closeEdit} className="px-3 py-1.5 rounded border dark:border-gray-600">Close</button>
+            </div>
+            {editLoading ? (
+              <Loader />
+            ) : (
+              <div className="space-y-3">
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <div className="text-sm text-gray-600 dark:text-gray-300">Full Name</div>
+                    <input
+                      value={editForm.fullName}
+                      onChange={(e) => setEditForm((s) => ({ ...s, fullName: e.target.value }))}
+                      className="w-full rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-sm text-gray-600 dark:text-gray-300">Email</div>
+                    <input
+                      value={editForm.email}
+                      onChange={(e) => setEditForm((s) => ({ ...s, email: e.target.value }))}
+                      className="w-full rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-sm text-gray-600 dark:text-gray-300">Mobile Number</div>
+                    <input
+                      value={editForm.mobileNumber}
+                      onChange={(e) => setEditForm((s) => ({ ...s, mobileNumber: e.target.value }))}
+                      className="w-full rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-3">
+                  <BoolSelect
+                    label="isVerified"
+                    value={editForm.isVerified}
+                    onChange={(v) => setEditForm((s) => ({ ...s, isVerified: v }))}
+                  />
+                  <BoolSelect
+                    label="isActive"
+                    value={editForm.isActive}
+                    onChange={(v) => setEditForm((s) => ({ ...s, isActive: v }))}
+                  />
+                  <BoolSelect
+                    label="isDeleted"
+                    value={editForm.isDeleted}
+                    onChange={(v) => setEditForm((s) => ({ ...s, isDeleted: v }))}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={closeEdit} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
+                  <button
+                    disabled={editSaving}
+                    onClick={saveEdit}
+                    className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60"
+                  >
+                    {editSaving ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {deleteConfirm.open && (
+        <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-md p-5 space-y-4">
+            <div className="font-semibold text-lg">Confirm Delete</div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Are you sure you want to delete {deleteConfirm.name}?
+            </p>
+            <p className="text-sm text-red-600">This action cannot be undone.</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={closeDeleteConfirm} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
+              <button
+                disabled={busy.id === deleteConfirm.id && busy.action === 'delete'}
+                onClick={confirmDelete}
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {busy.id === deleteConfirm.id && busy.action === 'delete' ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -426,4 +647,39 @@ function formatDate(value) {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return String(value)
   return d.toLocaleString()
+}
+
+function extractUser(res) {
+  if (!res) return null
+  if (res?.data && typeof res.data === 'object') {
+    if (Array.isArray(res.data)) return res.data[0] || null
+    return res.data
+  }
+  return res?.user || res?.data?.user || res
+}
+
+function pickBool(source, keys) {
+  for (const key of keys) {
+    const v = source?.[key]
+    if (typeof v === 'boolean') return v
+    if (v === 1 || v === 0) return Boolean(v)
+    if (typeof v === 'string' && (v.toLowerCase() === 'true' || v.toLowerCase() === 'false')) return v.toLowerCase() === 'true'
+  }
+  return null
+}
+
+function BoolSelect({ label, value, onChange }) {
+  return (
+    <div className="space-y-1">
+      <div className="text-sm text-gray-600 dark:text-gray-300">{label}</div>
+      <select
+        value={value ? 'true' : 'false'}
+        onChange={(e) => onChange(e.target.value === 'true')}
+        className="w-full rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+      >
+        <option value="true">True</option>
+        <option value="false">False</option>
+      </select>
+    </div>
+  )
 }

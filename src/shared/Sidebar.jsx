@@ -11,6 +11,7 @@ const nav = [
   { to: '/banners', label: 'Banners' },
   { to: '/faqs', label: 'FAQ' },
   { to: '/testimonials', label: 'Testimonials' },
+  { to: '/orders', label: 'Orders' },
   { to: '/payment-gateway', label: 'Payment Gateway' },
   { to: '/opinions', label: 'Opinions' },
   { to: '/subscriptions', label: 'Subscriptions' },
