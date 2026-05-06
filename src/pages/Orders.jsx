@@ -291,6 +291,8 @@ function toArray(value) {
   if (Array.isArray(value)) return value
   if (Array.isArray(value?.data)) return value.data
   if (Array.isArray(value?.data?.data)) return value.data.data
+  if (Array.isArray(value?.data?.items)) return value.data.items
+  if (Array.isArray(value?.items)) return value.items
   if (Array.isArray(value?.orders)) return value.orders
   return []
 }
