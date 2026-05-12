@@ -2,23 +2,22 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   getStructuredQuestionsFiltered,
+  api,
   updateStructuredParent,
   updateStructuredSub,
-  deleteStructuredParent,
-  uploadStructuredSubImage
+  deleteStructuredParent
 } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
 import { RichEditor } from '../shared/RichEditor.jsx'
+import { AnswerBlocksEditor } from '../shared/AnswerBlocksEditor.jsx'
 
 const emptyEditState = {
   open: false,
   pid: null,
   questionHtml: '',
   isDirect: false,
-  parentAnswerType: 'text',
-  parentAnswerHtml: '',
-  parentAnswerImageUrl: '',
-  mainQuestionAnswerHtml: '',
+  parentAnswerBlocks: [],
+  mainQuestionAnswerBlocks: [],
   subs: []
 }
 
@@ -34,11 +33,11 @@ export default function StructuredDetail() {
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null, title: '' })
   const [qotdSavingId, setQotdSavingId] = useState(null)
 
-  const baseUrl = import.meta?.env?.VITE_API_BASE_URL || ''
+  const baseUrl = import.meta?.env?.VITE_API_BASE_URL || api?.defaults?.baseURL || ''
   const abs = (url) => {
     if (!url) return ''
     const s = String(url)
-    if (s.startsWith('http')) return s
+    if (s.startsWith('http') || s.startsWith('data:') || s.startsWith('blob:')) return s
     const base = String(baseUrl).replace(/\/+$/, '')
     const path = s.startsWith('/') ? s : `/${s}`
     return `${base}${path}`
@@ -66,21 +65,24 @@ export default function StructuredDetail() {
     question_text: p?.question_text || p?.questionText || p?.title || '',
     questionId: p?.questionId || p?.question_id || p?.qid || p?.questionNo || p?.question_no || '',
     isDirect: Boolean(p?.isDirect) || (Array.isArray(p?.sub_questions) ? p.sub_questions.length === 0 : false),
-    answerType: p?.answerType || (p?.answerImage ? 'image' : 'text'),
+    answerType: p?.answerType || (Array.isArray(p?.answerBlocks) || Array.isArray(p?.answer_blocks) ? 'rich' : (p?.answerImage ? 'image' : 'text')),
     answer: Array.isArray(p?.answer) ? p.answer : [],
     answerHtml: answerArrayToHtml(Array.isArray(p?.answer) ? p.answer : []),
     answerImage: abs(p?.answerImage || ''),
+    answerBlocks: Array.isArray(p?.answerBlocks) ? p.answerBlocks : Array.isArray(p?.answer_blocks) ? p.answer_blocks : [],
     mainQuestionAnswer: Array.isArray(p?.main_question_answer) ? p.main_question_answer : [],
     mainQuestionAnswerHtml: answerArrayToHtml(Array.isArray(p?.main_question_answer) ? p.main_question_answer : []),
+    mainQuestionAnswerBlocks: Array.isArray(p?.mainQuestionAnswerBlocks) ? p.mainQuestionAnswerBlocks : Array.isArray(p?.main_question_answer_blocks) ? p.main_question_answer_blocks : [],
     sub_questions: (Array.isArray(p?.sub_questions) ? p.sub_questions : []).map((s) => ({
       id: s?.id || s?._id || String(s?.id || s?._id || ''),
       subDbid: s?._id || s?.id || '',
       part: String(s?.part ?? ''),
       text: s?.text || s?.title || '',
-      answerType: s?.answerType || (s?.answerImage ? 'image' : 'text'),
+      answerType: s?.answerType || (Array.isArray(s?.answerBlocks) || Array.isArray(s?.answer_blocks) ? 'rich' : (s?.answerImage ? 'image' : 'text')),
       answer: Array.isArray(s?.answer) ? s.answer : [],
       answerHtml: answerArrayToHtml(Array.isArray(s?.answer) ? s.answer : []),
-      answerImage: abs(s?.answerImage || '')
+      answerImage: abs(s?.answerImage || ''),
+      answerBlocks: Array.isArray(s?.answerBlocks) ? s.answerBlocks : Array.isArray(s?.answer_blocks) ? s.answer_blocks : []
     }))
   })
 
@@ -132,6 +134,7 @@ export default function StructuredDetail() {
         const next = { ...s, ...payload }
         if (payload.answerType === 'text') next.answerHtml = answerArrayToHtml(payload.answer || [])
         if (payload.answerType === 'image') next.answerImage = abs(payload.answerImage || '')
+        if (payload.answerType === 'rich') next.answerBlocks = Array.isArray(payload.answerBlocks) ? payload.answerBlocks : []
         return next
       })
       return { ...p, sub_questions: subs }
@@ -197,23 +200,36 @@ export default function StructuredDetail() {
   }
 
   const startEdit = (parent) => {
+    const blocksFrom = (item) => {
+      if (Array.isArray(item?.answerBlocks) && item.answerBlocks.length) return item.answerBlocks
+      if (item?.answerType === 'image' && item?.answerImage) return [{ type: 'image', url: item.answerImage }]
+      if (item?.answerHtml) return [{ type: 'text', text: item.answerHtml }]
+      return []
+    }
+    const blocksFromMain = (item) => {
+      if (Array.isArray(item?.mainQuestionAnswerBlocks) && item.mainQuestionAnswerBlocks.length) return item.mainQuestionAnswerBlocks
+      if (item?.mainQuestionAnswerHtml) return [{ type: 'text', text: item.mainQuestionAnswerHtml }]
+      return []
+    }
+    const blocksFromSub = (sub) => {
+      if (Array.isArray(sub?.answerBlocks) && sub.answerBlocks.length) return sub.answerBlocks
+      if (sub?.answerType === 'image' && sub?.answerImage) return [{ type: 'image', url: sub.answerImage }]
+      if (sub?.answerHtml) return [{ type: 'text', text: sub.answerHtml }]
+      return []
+    }
+
     setEditState({
       open: true,
       pid: parent.dbid,
       questionHtml: parent.question_text || '',
       isDirect: Boolean(parent.isDirect) || (parent.sub_questions || []).length === 0,
-      parentAnswerType: parent.answerType || 'text',
-      parentAnswerHtml: parent.answerHtml || '',
-      parentAnswerImageUrl: parent.answerImage || '',
-      mainQuestionAnswerHtml: parent.mainQuestionAnswerHtml || '',
+      parentAnswerBlocks: blocksFrom(parent),
+      mainQuestionAnswerBlocks: blocksFromMain(parent),
       subs: (parent.sub_questions || []).map((s) => ({
         sid: s.subDbid || s.id,
         part: s.part || '',
         textHtml: s.text || '',
-        answerType: s.answerType || 'text',
-        answerHtml: s.answerHtml || '',
-        answerImageUrl: s.answerImage || '',
-        answerImageFile: null
+        answerBlocks: blocksFromSub(s)
       }))
     })
   }
@@ -229,19 +245,6 @@ export default function StructuredDetail() {
     }))
   }
 
-  const uploadSubImageForEdit = async (sid, file) => {
-    if (!editState.pid || !sid || !file) return
-    setError('')
-    setOk('')
-    try {
-      const up = await uploadStructuredSubImage(editState.pid, sid, file)
-      const url = up?.url || up?.imageUrl || up?.absoluteUrl || ''
-      if (url) updateEditSub(sid, { answerImageUrl: url, answerImageFile: null })
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Image upload failed')
-    }
-  }
-
   const saveEdit = async () => {
     if (!editState.pid) return
     setError('')
@@ -250,23 +253,18 @@ export default function StructuredDetail() {
     try {
       const parentPayload = { question_text: editState.questionHtml }
       if (editState.isDirect) {
-        parentPayload.answerType = editState.parentAnswerType || 'text'
-        if (parentPayload.answerType === 'text') {
-          parentPayload.answer = htmlToArray(editState.parentAnswerHtml)
-        } else {
-          parentPayload.answerImage = editState.parentAnswerImageUrl || ''
-        }
+        parentPayload.answerType = 'rich'
+        parentPayload.answerBlocks = Array.isArray(editState.parentAnswerBlocks) ? editState.parentAnswerBlocks : []
+        parentPayload.answer_blocks = parentPayload.answerBlocks
       } else {
-        parentPayload.main_question_answer = htmlToArray(editState.mainQuestionAnswerHtml)
+        const blocks = Array.isArray(editState.mainQuestionAnswerBlocks) ? editState.mainQuestionAnswerBlocks : []
+        parentPayload.main_question_answer_type = 'rich'
+        parentPayload.main_question_answer_blocks = blocks
       }
       await editParent(editState.pid, parentPayload)
       for (const sub of editState.subs) {
-        const payload = { text: sub.textHtml, answerType: sub.answerType }
-        if (sub.answerType === 'text') {
-          payload.answer = htmlToArray(sub.answerHtml)
-        } else {
-          payload.answerImage = sub.answerImageUrl || ''
-        }
+        const blocks = Array.isArray(sub.answerBlocks) ? sub.answerBlocks : []
+        const payload = { text: sub.textHtml, answerType: 'rich', answerBlocks: blocks, answer_blocks: blocks }
         await editSub(editState.pid, sub.sid, payload)
       }
       setOk('Saved')
@@ -315,7 +313,7 @@ export default function StructuredDetail() {
               </div>
 
               <div className="space-y-3">
-                {parent.isDirect && (parent.answerType === 'image' ? Boolean(parent.answerImage) : Array.isArray(parent.answer) && parent.answer.length > 0) && (
+                {parent.isDirect && (
                   <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/40">
                     <div className="text-sm text-gray-500 dark:text-gray-400">Main Answer | {parent.answerType || 'text'}</div>
                     <div className="mt-2">
@@ -327,14 +325,39 @@ export default function StructuredDetail() {
                       {(parent.answerType || 'text') === 'image' && parent.answerImage && (
                         <img src={parent.answerImage} alt="answer" className="mt-2 max-h-48 object-contain rounded border border-gray-200 dark:border-gray-700" />
                       )}
+                      {(parent.answerType || 'text') === 'rich' && Array.isArray(parent.answerBlocks) && parent.answerBlocks.length > 0 && (
+                        <div className="space-y-3">
+                          {parent.answerBlocks.map((b, idx) => (
+                            <div key={`${b?.type || 'block'}-${idx}`}>
+                              {b?.type === 'image' ? (
+                                b?.url ? <img src={abs(b.url)} alt="answer" className="max-h-56 object-contain rounded border border-gray-200 dark:border-gray-700" /> : null
+                              ) : (
+                                <div dangerouslySetInnerHTML={{ __html: b?.text || '' }} />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
-                {!parent.isDirect && Array.isArray(parent.mainQuestionAnswer) && parent.mainQuestionAnswer.length > 0 && (
+                {!parent.isDirect && ((Array.isArray(parent.mainQuestionAnswer) && parent.mainQuestionAnswer.length > 0) || (Array.isArray(parent.mainQuestionAnswerBlocks) && parent.mainQuestionAnswerBlocks.length > 0)) && (
                   <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/40">
                     <div className="text-sm text-gray-500 dark:text-gray-400">Main Question Answer</div>
                     <div className="mt-2">
-                      {parent.mainQuestionAnswer.length === 1 ? (
+                      {Array.isArray(parent.mainQuestionAnswerBlocks) && parent.mainQuestionAnswerBlocks.length > 0 ? (
+                        <div className="space-y-3">
+                          {parent.mainQuestionAnswerBlocks.map((b, idx) => (
+                            <div key={`${b?.type || 'block'}-${idx}`}>
+                              {b?.type === 'image' ? (
+                                b?.url ? <img src={abs(b.url)} alt="answer" className="max-h-56 object-contain rounded border border-gray-200 dark:border-gray-700" /> : null
+                              ) : (
+                                <div dangerouslySetInnerHTML={{ __html: b?.text || '' }} />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : parent.mainQuestionAnswer.length === 1 ? (
                         <div dangerouslySetInnerHTML={{ __html: parent.mainQuestionAnswer[0] || '' }} />
                       ) : (
                         <ul className="list-disc ml-5 space-y-1">
@@ -360,6 +383,19 @@ export default function StructuredDetail() {
                       )}
                       {sub.answerType === 'image' && sub.answerImage && (
                         <img src={sub.answerImage} alt="answer" className="mt-2 max-h-48 object-contain rounded border border-gray-200 dark:border-gray-700" />
+                      )}
+                      {sub.answerType === 'rich' && Array.isArray(sub.answerBlocks) && sub.answerBlocks.length > 0 && (
+                        <div className="space-y-3">
+                          {sub.answerBlocks.map((b, idx) => (
+                            <div key={`${b?.type || 'block'}-${idx}`}>
+                              {b?.type === 'image' ? (
+                                b?.url ? <img src={abs(b.url)} alt="answer" className="max-h-56 object-contain rounded border border-gray-200 dark:border-gray-700" /> : null
+                              ) : (
+                                <div dangerouslySetInnerHTML={{ __html: b?.text || '' }} />
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -403,60 +439,20 @@ export default function StructuredDetail() {
             {editState.isDirect && (
               <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
                 <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Direct Answer</div>
-
-                <div className="grid md:grid-cols-3 gap-3">
-                  <div className="space-y-2">
-                    <label className="block text-sm">Answer Type</label>
-                    <select
-                      value={editState.parentAnswerType}
-                      onChange={(e) => setEditState((s) => ({ ...s, parentAnswerType: e.target.value }))}
-                      className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
-                    >
-                      <option value="text">Text</option>
-                      <option value="image">Image</option>
-                    </select>
-                  </div>
-
-                  {editState.parentAnswerType === 'text' ? (
-                    <div className="md:col-span-2 space-y-2">
-                      <label className="block text-sm">Answer</label>
-                      <RichEditor
-                        value={editState.parentAnswerHtml}
-                        onChange={(html) => setEditState((s) => ({ ...s, parentAnswerHtml: html }))}
-                      />
-                    </div>
-                  ) : (
-                    <div className="md:col-span-2 space-y-2">
-                      <label className="block text-sm">Answer Image URL</label>
-                      <input
-                        placeholder="Image URL"
-                        value={editState.parentAnswerImageUrl}
-                        onChange={(e) => setEditState((s) => ({ ...s, parentAnswerImageUrl: e.target.value }))}
-                        className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
-                      />
-                      {editState.parentAnswerImageUrl && (
-                        <img
-                          src={abs(editState.parentAnswerImageUrl)}
-                          alt="preview"
-                          className="mt-2 max-h-48 object-contain rounded border border-gray-200 dark:border-gray-700"
-                        />
-                      )}
-                    </div>
-                  )}
-                </div>
+                <AnswerBlocksEditor
+                  value={editState.parentAnswerBlocks}
+                  onChange={(blocks) => setEditState((s) => ({ ...s, parentAnswerBlocks: blocks }))}
+                />
               </div>
             )}
 
             {!editState.isDirect && (
               <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
                 <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Main Question Answer</div>
-                <div className="space-y-2">
-                  <label className="block text-sm">Answer</label>
-                  <RichEditor
-                    value={editState.mainQuestionAnswerHtml}
-                    onChange={(html) => setEditState((s) => ({ ...s, mainQuestionAnswerHtml: html }))}
-                  />
-                </div>
+                <AnswerBlocksEditor
+                  value={editState.mainQuestionAnswerBlocks}
+                  onChange={(blocks) => setEditState((s) => ({ ...s, mainQuestionAnswerBlocks: blocks }))}
+                />
               </div>
             )}
 
@@ -470,48 +466,12 @@ export default function StructuredDetail() {
                     <RichEditor value={sub.textHtml} onChange={(html) => updateEditSub(sub.sid, { textHtml: html })} />
                   </div>
 
-                  <div className="grid md:grid-cols-3 gap-3">
-                    <div className="space-y-2">
-                      <label className="block text-sm">Answer Type</label>
-                      <select
-                        value={sub.answerType}
-                        onChange={(e) => updateEditSub(sub.sid, { answerType: e.target.value })}
-                        className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
-                      >
-                        <option value="text">Text</option>
-                        <option value="image">Image</option>
-                      </select>
-                    </div>
-
-                    {sub.answerType === 'text' ? (
-                      <div className="md:col-span-2 space-y-2">
-                        <label className="block text-sm">Answer</label>
-                        <RichEditor value={sub.answerHtml} onChange={(html) => updateEditSub(sub.sid, { answerHtml: html })} />
-                      </div>
-                    ) : (
-                      <div className="md:col-span-2 space-y-2">
-                        <label className="block text-sm">Answer Image</label>
-                        <input
-                          placeholder="Image URL"
-                          value={sub.answerImageUrl}
-                          onChange={(e) => updateEditSub(sub.sid, { answerImageUrl: e.target.value })}
-                          className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
-                        />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => uploadSubImageForEdit(sub.sid, e.target.files?.[0] || null)}
-                          className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
-                        />
-                        {sub.answerImageUrl && (
-                          <img
-                            src={abs(sub.answerImageUrl)}
-                            alt="preview"
-                            className="mt-2 max-h-48 object-contain rounded border border-gray-200 dark:border-gray-700"
-                          />
-                        )}
-                      </div>
-                    )}
+                  <div className="space-y-2">
+                    <label className="block text-sm">Answer</label>
+                    <AnswerBlocksEditor
+                      value={sub.answerBlocks}
+                      onChange={(blocks) => updateEditSub(sub.sid, { answerBlocks: blocks })}
+                    />
                   </div>
                 </div>
               ))}
