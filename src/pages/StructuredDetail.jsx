@@ -37,7 +37,7 @@ export default function StructuredDetail() {
   const abs = (url) => {
     if (!url) return ''
     const s = String(url)
-    if (s.startsWith('http') || s.startsWith('data:') || s.startsWith('blob:')) return s
+    if (s.startsWith('http') || s.startsWith('//') || s.startsWith('data:') || s.startsWith('blob:')) return s
     const base = String(baseUrl).replace(/\/+$/, '')
     const path = s.startsWith('/') ? s : `/${s}`
     return `${base}${path}`
@@ -258,6 +258,8 @@ export default function StructuredDetail() {
         parentPayload.answer_blocks = parentPayload.answerBlocks
       } else {
         const blocks = Array.isArray(editState.mainQuestionAnswerBlocks) ? editState.mainQuestionAnswerBlocks : []
+        parentPayload.mainQuestionAnswerType = 'rich'
+        parentPayload.mainQuestionAnswerBlocks = blocks
         parentPayload.main_question_answer_type = 'rich'
         parentPayload.main_question_answer_blocks = blocks
       }

@@ -12,7 +12,7 @@ export function AnswerBlocksEditor({ value = [], onChange }) {
   const abs = (url) => {
     if (!url) return ''
     const s = String(url)
-    if (s.startsWith('http') || s.startsWith('data:') || s.startsWith('blob:')) return s
+    if (s.startsWith('http') || s.startsWith('//') || s.startsWith('data:') || s.startsWith('blob:')) return s
     const base = String(baseUrl).replace(/\/+$/, '')
     const path = s.startsWith('/') ? s : `/${s}`
     return base ? `${base}${path}` : s

@@ -12,7 +12,7 @@ export default function Qotd() {
   const abs = (url) => {
     if (!url) return ''
     const s = String(url)
-    if (s.startsWith('http')) return s
+    if (s.startsWith('http') || s.startsWith('//') || s.startsWith('data:') || s.startsWith('blob:')) return s
     const base = String(baseUrl).replace(/\/+$/, '')
     const path = s.startsWith('/') ? s : `/${s}`
     return `${base}${path}`

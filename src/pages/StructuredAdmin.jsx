@@ -12,6 +12,7 @@ import {
 import { Loader } from '../shared/Loader.jsx'
 import { useNavigate } from 'react-router-dom'
 import { RichEditor } from '../shared/RichEditor.jsx'
+import { AnswerBlocksEditor } from '../shared/AnswerBlocksEditor.jsx'
 import sampleStructuredFile from '../assets/files/questions-structured-hybrid-18.xlsx'
 
 export default function StructuredAdmin() {
@@ -39,12 +40,15 @@ export default function StructuredAdmin() {
   const [createForm, setCreateForm] = useState({
     year: '',
     part: '',
+    paper: '',
     questionHtml: '',
+    isDirect: false,
     subPart: 'a',
     subQuestionHtml: '',
     answerType: 'text',
     answerHtml: '',
-    answerImageUrl: ''
+    answerImageUrl: '',
+    directAnswerBlocks: []
   })
   const toArray = (x) => Array.isArray(x) ? x : Array.isArray(x?.data) ? x.data : Array.isArray(x?.data?.data) ? x.data.data : []
   const baseUrl = import.meta?.env?.VITE_API_BASE_URL || ''
@@ -85,7 +89,12 @@ export default function StructuredAdmin() {
     }
     return String(val).trim()
   }
-  const abs = (url) => (url && !String(url).startsWith('http') && baseUrl) ? `${baseUrl}${url}` : url
+  const abs = (url) => {
+    if (!url) return url
+    const s = String(url)
+    if (s.startsWith('http') || s.startsWith('//') || s.startsWith('data:') || s.startsWith('blob:')) return s
+    return baseUrl ? `${baseUrl}${s}` : s
+  }
   const normalize = (p) => ({
     id: p?.id || p?._id || String(p?.id || p?._id || ''),
     year: String(p?.year ?? ''),
@@ -247,12 +256,15 @@ export default function StructuredAdmin() {
     setCreateForm({
       year: year || '',
       part: part || '',
+      paper: paper || '',
       questionHtml: '',
+      isDirect: false,
       subPart: 'a',
       subQuestionHtml: '',
       answerType: 'text',
       answerHtml: '',
-      answerImageUrl: ''
+      answerImageUrl: '',
+      directAnswerBlocks: []
     })
     setCreateOpen(true)
   }
@@ -287,6 +299,39 @@ export default function StructuredAdmin() {
       setError('Please enter question')
       return
     }
+
+    if (createForm.isDirect) {
+      const blocks = Array.isArray(createForm.directAnswerBlocks) ? createForm.directAnswerBlocks : []
+      if (blocks.length === 0) {
+        setError('Please add at least one answer block')
+        return
+      }
+      const payload = {
+        year: Number(createForm.year),
+        part: createForm.part === 'part2' ? 'Part 2' : 'Part 1',
+        paper: String(createForm.paper || '').trim() || undefined,
+        question_text: createForm.questionHtml,
+        isDirect: true,
+        answerType: 'rich',
+        answerBlocks: blocks,
+        answer_blocks: blocks,
+        sub_questions: []
+      }
+      try {
+        setCreating(true)
+        await createStructuredQuestion(payload)
+        const res = await getStructuredQuestions()
+        setList(toArray(res).map(normalize))
+        setOk('Question added')
+        setCreateOpen(false)
+      } catch (err) {
+        setError(err?.response?.data?.message || 'Create failed')
+      } finally {
+        setCreating(false)
+      }
+      return
+    }
+
     if (!createForm.subQuestionHtml.trim()) {
       setError('Please enter sub question')
       return
@@ -303,9 +348,11 @@ export default function StructuredAdmin() {
       setError('Please add answer image URL or upload image')
       return
     }
+
     const payload = {
       year: Number(createForm.year),
       part: createForm.part === 'part2' ? 'Part 2' : 'Part 1',
+      paper: String(createForm.paper || '').trim() || undefined,
       question_text: createForm.questionHtml,
       sub_questions: [{
         part: createForm.subPart || 'a',
@@ -426,7 +473,7 @@ export default function StructuredAdmin() {
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-5xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="font-semibold text-lg">Add Structured Question</div>
-            <div className="grid md:grid-cols-3 gap-3">
+            <div className="grid md:grid-cols-4 gap-3">
               <div className="space-y-2">
                 <label className="block text-sm">Year</label>
                 <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.year} onChange={(e) => setCreateForm((s) => ({ ...s, year: e.target.value }))} required>
@@ -453,54 +500,89 @@ export default function StructuredAdmin() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="block text-sm">Sub Part</label>
+                <label className="block text-sm">Paper (optional)</label>
                 <input
                   className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
-                  value={createForm.subPart}
-                  onChange={(e) => setCreateForm((s) => ({ ...s, subPart: e.target.value }))}
-                  placeholder="a"
+                  value={createForm.paper}
+                  onChange={(e) => setCreateForm((s) => ({ ...s, paper: e.target.value }))}
+                  placeholder="Paper 1"
                 />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm">Question Type</label>
+                <label className="flex items-center gap-2 text-sm select-none">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(createForm.isDirect)}
+                    onChange={(e) => setCreateForm((s) => ({ ...s, isDirect: e.target.checked }))}
+                  />
+                  Direct (no sub-questions)
+                </label>
               </div>
             </div>
             <div className="space-y-2">
               <label className="block text-sm">Question</label>
               <RichEditor value={createForm.questionHtml} onChange={(html) => setCreateForm((s) => ({ ...s, questionHtml: html }))} />
             </div>
-            <div className="space-y-2">
-              <label className="block text-sm">Sub Question</label>
-              <RichEditor value={createForm.subQuestionHtml} onChange={(html) => setCreateForm((s) => ({ ...s, subQuestionHtml: html }))} />
-            </div>
-            <div className="grid md:grid-cols-3 gap-3">
-              <div className="space-y-2">
-                <label className="block text-sm">Answer Type</label>
-                <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.answerType} onChange={(e) => setCreateForm((s) => ({ ...s, answerType: e.target.value }))}>
-                  <option value="text">Text</option>
-                  <option value="image">Image</option>
-                </select>
+
+            {createForm.isDirect ? (
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Direct Answer (Rich)</div>
+                <AnswerBlocksEditor
+                  value={createForm.directAnswerBlocks}
+                  onChange={(blocks) => setCreateForm((s) => ({ ...s, directAnswerBlocks: blocks }))}
+                />
               </div>
-              {createForm.answerType === 'text' ? (
-                <div className="md:col-span-2 space-y-2">
-                  <label className="block text-sm">Answer</label>
-                  <RichEditor value={createForm.answerHtml} onChange={(html) => setCreateForm((s) => ({ ...s, answerHtml: html }))} />
+            ) : (
+              <>
+                <div className="grid md:grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <label className="block text-sm">Sub Part</label>
+                    <input
+                      className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                      value={createForm.subPart}
+                      onChange={(e) => setCreateForm((s) => ({ ...s, subPart: e.target.value }))}
+                      placeholder="a"
+                    />
+                  </div>
                 </div>
-              ) : (
-                <div className="md:col-span-2 space-y-2">
-                  <label className="block text-sm">Answer Image</label>
-                  <input
-                    className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
-                    value={createForm.answerImageUrl}
-                    onChange={(e) => setCreateForm((s) => ({ ...s, answerImageUrl: e.target.value }))}
-                    placeholder="https://..."
-                  />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
-                    onChange={(e) => uploadImageForCreate(e.target.files?.[0] || null)}
-                  />
+                <div className="space-y-2">
+                  <label className="block text-sm">Sub Question</label>
+                  <RichEditor value={createForm.subQuestionHtml} onChange={(html) => setCreateForm((s) => ({ ...s, subQuestionHtml: html }))} />
                 </div>
-              )}
-            </div>
+                <div className="grid md:grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <label className="block text-sm">Answer Type</label>
+                    <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.answerType} onChange={(e) => setCreateForm((s) => ({ ...s, answerType: e.target.value }))}>
+                      <option value="text">Text</option>
+                      <option value="image">Image</option>
+                    </select>
+                  </div>
+                  {createForm.answerType === 'text' ? (
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="block text-sm">Answer</label>
+                      <RichEditor value={createForm.answerHtml} onChange={(html) => setCreateForm((s) => ({ ...s, answerHtml: html }))} />
+                    </div>
+                  ) : (
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="block text-sm">Answer Image</label>
+                      <input
+                        className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                        value={createForm.answerImageUrl}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, answerImageUrl: e.target.value }))}
+                        placeholder="https://..."
+                      />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                        onChange={(e) => uploadImageForCreate(e.target.files?.[0] || null)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
             <div className="flex gap-2 justify-end">
               <button onClick={closeCreateModal} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
               <button disabled={creating} onClick={onCreateSingleQuestion} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
