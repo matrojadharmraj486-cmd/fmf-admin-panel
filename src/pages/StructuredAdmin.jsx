@@ -556,14 +556,12 @@ export default function StructuredAdmin() {
           <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {getSortedGroups(list).map((g) => (
               <div key={groupKeyFromGroup(g)} className="relative rounded bg-white dark:bg-gray-800 shadow p-4 cursor-pointer hover:shadow-md transition" onClick={() => navigate(`/structured-questions/${g.year}/${g.part}${g.paper ? `/${encodeURIComponent(g.paper)}` : ''}`)}>
-                <div
-                  className="absolute top-2 left-2 rounded bg-white/95 dark:bg-gray-900/90 border border-gray-200 dark:border-gray-700 shadow-sm p-1"
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <div className="flex items-start gap-3 pr-14">
                   <input
                     type="checkbox"
-                    className="h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900"
+                    className="mt-1 h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900"
                     checked={selectedKeys.has(groupKeyFromGroup(g))}
+                    onClick={(e) => e.stopPropagation()}
                     onChange={(e) => {
                       const key = groupKeyFromGroup(g)
                       setSelectedKeys((prev) => {
@@ -574,11 +572,13 @@ export default function StructuredAdmin() {
                       })
                     }}
                   />
-                </div>
-                <div className="font-semibold">
+                  <div className="min-w-0">
+                    <div className="font-semibold truncate">
                   {g.year} • {String(g.part).toUpperCase()} {g.paper ? `• ${g.paper}` : ''}
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">{g.countParents} parent • {g.countSubs} sub</div>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={(e) => {
