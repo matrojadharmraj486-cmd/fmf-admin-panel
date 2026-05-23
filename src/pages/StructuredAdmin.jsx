@@ -533,6 +533,7 @@ export default function StructuredAdmin() {
               <label className="flex items-center gap-2 text-sm select-none">
                 <input
                   type="checkbox"
+                  className="h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900"
                   checked={selectedKeys.size > 0 && selectedKeys.size === getSortedGroups(list).length}
                   onChange={(e) => {
                     const groups = getSortedGroups(list)
@@ -555,21 +556,25 @@ export default function StructuredAdmin() {
           <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {getSortedGroups(list).map((g) => (
               <div key={groupKeyFromGroup(g)} className="relative rounded bg-white dark:bg-gray-800 shadow p-4 cursor-pointer hover:shadow-md transition" onClick={() => navigate(`/structured-questions/${g.year}/${g.part}${g.paper ? `/${encodeURIComponent(g.paper)}` : ''}`)}>
-                <input
-                  type="checkbox"
-                  className="absolute top-2 left-2 h-4 w-4"
-                  checked={selectedKeys.has(groupKeyFromGroup(g))}
+                <div
+                  className="absolute top-2 left-2 rounded bg-white/95 dark:bg-gray-900/90 border border-gray-200 dark:border-gray-700 shadow-sm p-1"
                   onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => {
-                    const key = groupKeyFromGroup(g)
-                    setSelectedKeys((prev) => {
-                      const next = new Set(prev)
-                      if (e.target.checked) next.add(key)
-                      else next.delete(key)
-                      return next
-                    })
-                  }}
-                />
+                >
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900"
+                    checked={selectedKeys.has(groupKeyFromGroup(g))}
+                    onChange={(e) => {
+                      const key = groupKeyFromGroup(g)
+                      setSelectedKeys((prev) => {
+                        const next = new Set(prev)
+                        if (e.target.checked) next.add(key)
+                        else next.delete(key)
+                        return next
+                      })
+                    }}
+                  />
+                </div>
                 <div className="font-semibold">
                   {g.year} • {String(g.part).toUpperCase()} {g.paper ? `• ${g.paper}` : ''}
                 </div>
