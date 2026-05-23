@@ -65,8 +65,11 @@ export const getDashboardTimeseries = async (params = {}) => {
 }
 
 // Users
-export const listUsers = async (q = '') => {
-  const { data } = await api.get('/api/admin/users', { params: { q } })
+export const listUsers = async (qOrParams = '') => {
+  const params = (qOrParams && typeof qOrParams === 'object')
+    ? (qOrParams || {})
+    : { q: qOrParams }
+  const { data } = await api.get('/api/admin/users', { params })
   return data
 }
 export const blockUser = async (id) => (await api.post(`/admin/users/${id}/block`)).data
@@ -96,6 +99,15 @@ export const deleteAdminUser = async (id) => {
     return (await api.delete(`/api/admin/users/${id}`)).data
   } catch (err) {
     if (err?.response?.status === 404) return (await api.delete(`/admin/users/${id}`)).data
+    throw err
+  }
+}
+
+export const bulkDeleteAdminUsers = async (ids = []) => {
+  try {
+    return (await api.post('/api/admin/users/bulk-delete', { ids })).data
+  } catch (err) {
+    if (err?.response?.status === 404) return (await api.post('/admin/users/bulk-delete', { ids })).data
     throw err
   }
 }
@@ -299,9 +311,28 @@ export const getStructuredQuestionsFiltered = async (year, part, paper) => {
   const res = await api.get('/api/admin/questions-structured', { params })
   return res.data?.data || res.data
 }
-export const deleteStructuredQuestionsByYearPart = async (year, part) => {
+export const deleteStructuredQuestionsByYearPart = async (year, part, paper) => {
   const partParam = String(part || '').toLowerCase().includes('2') ? 'Part 2' : 'Part 1'
-  return (await api.delete('/api/admin/questions-structured', { params: { year, part: partParam } })).data
+  const params = { year, part: partParam }
+  if (paper) params.paper = paper
+  return (await api.delete('/api/admin/questions-structured', { params })).data
+}
+// Bulk delete groups (admin-only). Payload: { groups: [{ year, part: 'Part 1'|'Part 2', paper?: string }] }
+export const bulkDeleteStructuredQuestions = async (groups = []) => {
+  const payload = { groups }
+  try {
+    return (await api.post('/api/admin/questions-structured/bulk-delete', payload)).data
+  } catch (err) {
+    // Backward-compatible fallback: delete each group using existing endpoint
+    if (err?.response?.status === 404) {
+      const tasks = (Array.isArray(groups) ? groups : []).map((g) =>
+        deleteStructuredQuestionsByYearPart(g?.year, g?.part, g?.paper)
+      )
+      await Promise.all(tasks)
+      return { ok: true, deleted: tasks.length }
+    }
+    throw err
+  }
 }
 export const updateStructuredParent = async (id, payload) => (await api.put(`/api/admin/questions-structured/${id}`, payload)).data
 export const updateStructuredSub = async (id, subId, payload) => (await api.put(`/api/admin/questions-structured/${id}/sub/${subId}`, payload)).data
@@ -338,6 +369,7 @@ export const updateSubscription = async (id, payload) => (await api.put(`/api/ad
 export const updateSubscriptionStatus = async (id, isActive) => (
   await api.patch(`/api/admin/subscriptions/${id}/status`, { isActive })
 ).data
+export const deleteSubscription = async (id) => (await api.delete(`/api/admin/subscriptions/${id}`)).data
 
 // Payment Gateway (Admin)
 export const getPaymentGatewaySettings = async () => (await api.get('/api/admin/payment-gateway')).data
@@ -353,13 +385,13 @@ export const updateSupportTicket = async (id, payload) => (
 ).data
 
 // Opinions
-export const listOpinions = async () => {
+export const listOpinions = async (params = {}) => {
   try {
-    const { data } = await api.get('/api/admin/opinions')
+    const { data } = await api.get('/api/admin/opinions', { params })
     return data
   } catch (err) {
     if (err?.response?.status === 404) {
-      const { data } = await api.get('/api/opinions')
+      const { data } = await api.get('/api/opinions', { params })
       return data
     }
     throw err

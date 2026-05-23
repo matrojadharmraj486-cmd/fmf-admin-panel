@@ -276,9 +276,7 @@ export default function Orders() {
             {detail.loading ? (
               <Loader />
             ) : (
-              <pre className="whitespace-pre-wrap break-words rounded-lg bg-gray-50 p-4 text-xs text-gray-900 dark:bg-gray-900/40 dark:text-gray-100">
-                {JSON.stringify(detail.data, null, 2)}
-              </pre>
+              <OrderDetailsView order={detail.data} />
             )}
           </div>
         </div>
@@ -387,4 +385,202 @@ function Meta({ label, value }) {
       <div className="text-sm text-gray-900 dark:text-gray-100 break-words">{value || '-'}</div>
     </div>
   )
+}
+
+function Card({ title, children }) {
+  return (
+    <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+      {title ? <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</div> : null}
+      <div className={title ? 'mt-3 space-y-2' : 'space-y-2'}>{children}</div>
+    </div>
+  )
+}
+
+function OrderDetailsView({ order }) {
+  if (!order) {
+    return (
+      <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+        No order details found.
+      </div>
+    )
+  }
+
+  const items = extractOrderItems(order)
+  const shipping = extractAddress(order?.shippingAddress || order?.shipping || order?.address || order?.deliveryAddress || order?.delivery_address)
+  const billing = extractAddress(order?.billingAddress || order?.billing || order?.billing_address)
+  const payment = extractPayment(order)
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-3">
+        <Card title="Summary">
+          <Meta label="Order ID" value={getOrderId(order)} />
+          <Meta label="Status" value={getStatus(order)} />
+          <Meta label="Amount" value={formatAmount(order)} />
+          <Meta label="Plan" value={getPlanName(order)} />
+          <Meta label="Receipt" value={getReceipt(order)} />
+        </Card>
+        <Card title="User">
+          <Meta label="Name" value={getUserName(order)} />
+          <Meta label="Email" value={getUserEmail(order)} />
+          <Meta label="Mobile" value={getUserMobile(order)} />
+          <Meta label="User ID" value={extractUserId(order)} />
+        </Card>
+        <Card title="Payment">
+          <Meta label="Method" value={getMethod(order)} />
+          <Meta label="Payment ID" value={payment.paymentId} />
+          <Meta label="Transaction ID" value={payment.transactionId} />
+          <Meta label="Gateway Order ID" value={payment.gatewayOrderId} />
+          <Meta label="Paid/Created" value={formatDate(getPaidOrCreatedAt(order))} />
+        </Card>
+      </div>
+
+      {items.length > 0 && (
+        <Card title="Items">
+          <div className="overflow-x-auto rounded border border-gray-200 dark:border-gray-700">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <Th>Item</Th>
+                  <Th align="right">Qty</Th>
+                  <Th align="right">Price</Th>
+                  <Th align="right">Total</Th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {items.map((it, idx) => (
+                  <tr key={it.id || idx} className="bg-white dark:bg-gray-800">
+                    <Td>{it.name}</Td>
+                    <Td align="right" mono>{String(it.qty)}</Td>
+                    <Td align="right" mono>{it.price}</Td>
+                    <Td align="right" mono>{it.total}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {(shipping.hasAny || billing.hasAny) && (
+        <div className="grid gap-3 md:grid-cols-2">
+          {shipping.hasAny && (
+            <Card title="Shipping Address">
+              <Meta label="Name" value={shipping.name} />
+              <Meta label="Phone" value={shipping.phone} />
+              <Meta label="Address" value={shipping.line} />
+            </Card>
+          )}
+          {billing.hasAny && (
+            <Card title="Billing Address">
+              <Meta label="Name" value={billing.name} />
+              <Meta label="Phone" value={billing.phone} />
+              <Meta label="Address" value={billing.line} />
+            </Card>
+          )}
+        </div>
+      )}
+
+      <details className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+        <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-200">
+          Raw JSON
+        </summary>
+        <pre className="mt-3 whitespace-pre-wrap break-words rounded-lg bg-gray-50 p-4 text-xs text-gray-900 dark:bg-gray-900/40 dark:text-gray-100">
+          {safeJson(order)}
+        </pre>
+      </details>
+    </div>
+  )
+}
+
+function safeJson(value) {
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return String(value)
+  }
+}
+
+function extractUserId(o) {
+  const u = getUser(o)
+  return u?._id || u?.id || o?.userId || o?.user_id || '-'
+}
+
+function extractPayment(o) {
+  const paymentId =
+    o?.paymentId ||
+    o?.payment_id ||
+    o?.razorpayPaymentId ||
+    o?.razorpay_payment_id ||
+    o?.payment?.id ||
+    o?.payment?.paymentId ||
+    '-'
+  const transactionId =
+    o?.transactionId ||
+    o?.txnId ||
+    o?.txn_id ||
+    o?.transaction_id ||
+    o?.payment?.transactionId ||
+    '-'
+  const gatewayOrderId =
+    o?.gatewayOrderId ||
+    o?.razorpayOrderId ||
+    o?.razorpay_order_id ||
+    o?.orderId ||
+    o?.order_id ||
+    '-'
+  return { paymentId, transactionId, gatewayOrderId }
+}
+
+function extractOrderItems(o) {
+  const raw =
+    (Array.isArray(o?.items) && o.items) ||
+    (Array.isArray(o?.orderItems) && o.orderItems) ||
+    (Array.isArray(o?.products) && o.products) ||
+    (Array.isArray(o?.lineItems) && o.lineItems) ||
+    []
+  return raw.map((it, idx) => {
+    const qty = Number(it?.qty ?? it?.quantity ?? 1) || 1
+    const unit = it?.price ?? it?.unitPrice ?? it?.amount ?? it?.value ?? ''
+    const currency = it?.currency || o?.currency || 'INR'
+    const unitText = formatMoney(unit, currency)
+    const totalText = formatMoney(calcTotal(unit, qty), currency)
+    return {
+      id: it?._id || it?.id || idx,
+      name: it?.name || it?.title || it?.productName || it?.sku || 'Item',
+      qty,
+      price: unitText,
+      total: totalText
+    }
+  })
+}
+
+function calcTotal(unit, qty) {
+  const n = Number(unit)
+  if (!Number.isFinite(n)) return unit
+  return n * (Number(qty) || 1)
+}
+
+function formatMoney(amount, currency) {
+  if (amount === null || typeof amount === 'undefined' || amount === '') return '-'
+  const n = Number(amount)
+  if (!Number.isFinite(n)) return `${amount} ${currency}`.trim()
+  return `${n} ${currency}`.trim()
+}
+
+function extractAddress(addr) {
+  if (!addr || typeof addr !== 'object') return { hasAny: false, name: '-', phone: '-', line: '-' }
+  const name = addr?.name || addr?.fullName || addr?.contactName || '-'
+  const phone = addr?.phone || addr?.mobileNumber || addr?.mobile || addr?.contactNumber || '-'
+  const parts = [
+    addr?.line1 || addr?.addressLine1 || addr?.address1 || addr?.street || '',
+    addr?.line2 || addr?.addressLine2 || addr?.address2 || '',
+    addr?.city || '',
+    addr?.state || '',
+    addr?.pincode || addr?.pinCode || addr?.zip || '',
+    addr?.country || ''
+  ].map((s) => String(s || '').trim()).filter(Boolean)
+  const line = parts.length ? parts.join(', ') : '-'
+  const hasAny = line !== '-' || name !== '-' || phone !== '-'
+  return { hasAny, name, phone, line }
 }

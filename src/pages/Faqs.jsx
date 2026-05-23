@@ -84,9 +84,9 @@ export default function Faqs() {
       if (aHas && bHas) return Number(ao) - Number(bo)
       if (aHas && !bHas) return -1
       if (!aHas && bHas) return 1
-      const at = new Date(a?.updatedAt || a?.createdAt || 0).getTime()
-      const bt = new Date(b?.updatedAt || b?.createdAt || 0).getTime()
-      return bt - at
+      const at = new Date(a?.createdAt || a?.updatedAt || 0).getTime()
+      const bt = new Date(b?.createdAt || b?.updatedAt || 0).getTime()
+      return at - bt
     })
   }, [items, search])
 
@@ -366,4 +366,3 @@ export default function Faqs() {
     </div>
   )
 }
-

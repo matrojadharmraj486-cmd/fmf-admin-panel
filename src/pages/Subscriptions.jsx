@@ -3,7 +3,8 @@ import {
   listSubscriptions,
   createSubscription,
   updateSubscription,
-  updateSubscriptionStatus
+  updateSubscriptionStatus,
+  deleteSubscription
 } from '../services/api.js'
 
 const emptyForm = {
@@ -27,6 +28,7 @@ export default function Subscriptions() {
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ ...emptyForm })
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null, name: '' })
 
   const pushToast = (type, message) => {
     const id = `${Date.now()}_${Math.random()}`
@@ -244,12 +246,62 @@ export default function Subscriptions() {
                             ? 'Deactivate'
                             : 'Activate'}
                       </button>
+                      <button
+                        type="button"
+                        disabled={busy.id === id}
+                        onClick={() => setDeleteConfirm({ open: true, id, name: item?.name || 'this plan' })}
+                        className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {deleteConfirm.open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-md p-5 space-y-4">
+            <div className="font-semibold text-lg">Confirm Delete</div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Delete subscription <span className="font-medium">{deleteConfirm.name}</span>?
+            </p>
+            <p className="text-sm text-red-600">This action cannot be undone.</p>
+            <div className="flex gap-2 justify-end">
+              <button
+                disabled={busy.id === deleteConfirm.id && busy.action === 'delete'}
+                onClick={() => setDeleteConfirm({ open: false, id: null, name: '' })}
+                className="px-4 py-2 rounded border dark:border-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={busy.id === deleteConfirm.id && busy.action === 'delete'}
+                onClick={async () => {
+                  if (!deleteConfirm.id) return
+                  try {
+                    setBusy({ id: deleteConfirm.id, action: 'delete' })
+                    await deleteSubscription(deleteConfirm.id)
+                    pushToast('success', 'Subscription deleted')
+                    setDeleteConfirm({ open: false, id: null, name: '' })
+                    await fetchSubscriptions()
+                  } catch {
+                    pushToast('error', 'Failed to delete subscription')
+                    setError('Failed to delete subscription')
+                  } finally {
+                    setBusy({ id: null, action: '' })
+                  }
+                }}
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {busy.id === deleteConfirm.id && busy.action === 'delete' ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

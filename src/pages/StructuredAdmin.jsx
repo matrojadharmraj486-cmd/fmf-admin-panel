@@ -5,6 +5,7 @@ import {
   getStructuredQuestions,
   uploadEditorImage,
   deleteStructuredQuestionsByYearPart,
+  bulkDeleteStructuredQuestions,
   getQuestionYears,
   getQuestionParts,
   getQuestionPapers
@@ -29,10 +30,13 @@ export default function StructuredAdmin() {
   const [years, setYears] = useState([])
   const [parts, setParts] = useState([])
   const [papers, setPapers] = useState([])
+  const [createPapers, setCreatePapers] = useState([])
   const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [purging, setPurging] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, year: '', part: '', paper: '' })
+  const [bulkConfirm, setBulkConfirm] = useState({ open: false, groups: [] })
+  const [selectedKeys, setSelectedKeys] = useState(() => new Set())
   const prevYearRef = useRef(year)
   const prevPartRef = useRef(part)
   const didInitYearRef = useRef(false)
@@ -43,12 +47,9 @@ export default function StructuredAdmin() {
     paper: '',
     questionHtml: '',
     isDirect: false,
-    subPart: 'a',
-    subQuestionHtml: '',
-    answerType: 'text',
-    answerHtml: '',
-    answerImageUrl: '',
-    directAnswerBlocks: []
+    directAnswerBlocks: [],
+    mainQuestionAnswerBlocks: [],
+    subs: [{ sid: 'sub-1', part: 'a', textHtml: '', answerBlocks: [] }]
   })
   const toArray = (x) => Array.isArray(x) ? x : Array.isArray(x?.data) ? x.data : Array.isArray(x?.data?.data) ? x.data.data : []
   const baseUrl = import.meta?.env?.VITE_API_BASE_URL || ''
@@ -141,6 +142,37 @@ export default function StructuredAdmin() {
     load()
     return () => { mounted = false }
   }, [])
+
+  useEffect(() => {
+    // Drop selections that no longer exist after refresh/upload/delete
+    const allowed = new Set(getSortedGroups(list).map(groupKeyFromGroup))
+    setSelectedKeys((prev) => {
+      const next = new Set()
+      for (const k of prev) if (allowed.has(k)) next.add(k)
+      return next
+    })
+  }, [list])
+
+  useEffect(() => {
+    let mounted = true
+    const loadCreatePapers = async () => {
+      const y = String(createForm.year || '').trim()
+      const p = String(createForm.part || '').trim()
+      if (!y || !p) {
+        if (mounted) setCreatePapers([])
+        return
+      }
+      try {
+        const res = await getQuestionPapers(y, p)
+        const arr = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : Array.isArray(res?.papers) ? res.papers : []
+        if (mounted) setCreatePapers(arr.map(String))
+      } catch {
+        if (mounted) setCreatePapers([])
+      }
+    }
+    loadCreatePapers()
+    return () => { mounted = false }
+  }, [createForm.year, createForm.part])
 
   useEffect(() => {
     let mounted = true
@@ -259,29 +291,39 @@ export default function StructuredAdmin() {
       paper: paper || '',
       questionHtml: '',
       isDirect: false,
-      subPart: 'a',
-      subQuestionHtml: '',
-      answerType: 'text',
-      answerHtml: '',
-      answerImageUrl: '',
-      directAnswerBlocks: []
+      directAnswerBlocks: [],
+      mainQuestionAnswerBlocks: [],
+      subs: [{ sid: 'sub-1', part: 'a', textHtml: '', answerBlocks: [] }]
     })
     setCreateOpen(true)
   }
 
   const closeCreateModal = () => setCreateOpen(false)
 
-  const uploadImageForCreate = async (file) => {
-    if (!file) return
-    setError('')
-    setOk('')
-    try {
-      const res = await uploadEditorImage(file)
-      const url = res?.url || res?.imageUrl || res?.absoluteUrl
-      if (url) setCreateForm((prev) => ({ ...prev, answerImageUrl: url }))
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Image upload failed')
-    }
+  const updateCreateSub = (sid, patch) => {
+    setCreateForm((prev) => ({
+      ...prev,
+      subs: (Array.isArray(prev.subs) ? prev.subs : []).map((s) => (s.sid === sid ? { ...s, ...patch } : s))
+    }))
+  }
+
+  const addCreateSub = () => {
+    setCreateForm((prev) => {
+      const subs = Array.isArray(prev.subs) ? prev.subs : []
+      const nextIndex = subs.length + 1
+      return {
+        ...prev,
+        subs: [...subs, { sid: `sub-${Date.now()}-${nextIndex}`, part: '', textHtml: '', answerBlocks: [] }]
+      }
+    })
+  }
+
+  const removeCreateSub = (sid) => {
+    setCreateForm((prev) => {
+      const subs = Array.isArray(prev.subs) ? prev.subs : []
+      const next = subs.filter((s) => s.sid !== sid)
+      return { ...prev, subs: next.length ? next : [{ sid: `sub-${Date.now()}-1`, part: 'a', textHtml: '', answerBlocks: [] }] }
+    })
   }
 
   const onCreateSingleQuestion = async () => {
@@ -332,21 +374,17 @@ export default function StructuredAdmin() {
       return
     }
 
-    if (!createForm.subQuestionHtml.trim()) {
-      setError('Please enter sub question')
+    const subs = Array.isArray(createForm.subs) ? createForm.subs : []
+    if (subs.length === 0) {
+      setError('Please add at least one sub question')
       return
     }
-    if (!createForm.subPart || !String(createForm.subPart).trim()) {
-      setError('Please enter sub part')
-      return
-    }
-    if (createForm.answerType === 'text' && !createForm.answerHtml.trim()) {
-      setError('Please enter answer')
-      return
-    }
-    if (createForm.answerType === 'image' && !createForm.answerImageUrl.trim()) {
-      setError('Please add answer image URL or upload image')
-      return
+    for (let i = 0; i < subs.length; i++) {
+      const s = subs[i]
+      if (!String(s?.part || '').trim()) return setError(`Please enter sub part for sub question ${i + 1}`)
+      if (!String(s?.textHtml || '').trim()) return setError(`Please enter sub question text for sub question ${i + 1}`)
+      const blocks = Array.isArray(s?.answerBlocks) ? s.answerBlocks : []
+      if (blocks.length === 0) return setError(`Please add at least one answer block for sub question ${i + 1}`)
     }
 
     const payload = {
@@ -354,13 +392,15 @@ export default function StructuredAdmin() {
       part: createForm.part === 'part2' ? 'Part 2' : 'Part 1',
       paper: String(createForm.paper || '').trim() || undefined,
       question_text: createForm.questionHtml,
-      sub_questions: [{
-        part: createForm.subPart || 'a',
-        text: createForm.subQuestionHtml,
-        answerType: createForm.answerType,
-        answer: createForm.answerType === 'text' ? htmlToArray(createForm.answerHtml) : [],
-        answerImage: createForm.answerType === 'image' ? createForm.answerImageUrl : ''
-      }]
+      mainQuestionAnswerBlocks: Array.isArray(createForm.mainQuestionAnswerBlocks) ? createForm.mainQuestionAnswerBlocks : [],
+      main_question_answer_blocks: Array.isArray(createForm.mainQuestionAnswerBlocks) ? createForm.mainQuestionAnswerBlocks : [],
+      sub_questions: subs.map((s) => ({
+        part: String(s.part || 'a').trim(),
+        text: s.textHtml,
+        answerType: 'rich',
+        answerBlocks: Array.isArray(s.answerBlocks) ? s.answerBlocks : [],
+        answer_blocks: Array.isArray(s.answerBlocks) ? s.answerBlocks : []
+      }))
     }
     try {
       setCreating(true)
@@ -385,18 +425,54 @@ export default function StructuredAdmin() {
   }
 
   const closeDeleteConfirm = () => setDeleteConfirm({ open: false, year: '', part: '', paper: '' })
+  const closeBulkConfirm = () => setBulkConfirm({ open: false, groups: [] })
 
   const confirmDeleteByYearPart = async () => {
     if (!deleteConfirm.year || !deleteConfirm.part) return
     try {
       setPurging(true)
-      await deleteStructuredQuestionsByYearPart(deleteConfirm.year, deleteConfirm.part)
+      await deleteStructuredQuestionsByYearPart(deleteConfirm.year, deleteConfirm.part, deleteConfirm.paper)
       const res = await getStructuredQuestions()
       setList(toArray(res).map(normalize))
       setOk('Deleted questions for selected year/part')
       closeDeleteConfirm()
     } catch (err) {
       setError(err?.response?.data?.message || 'Delete failed')
+    } finally {
+      setPurging(false)
+    }
+  }
+
+  const openBulkDeleteConfirm = () => {
+    setError('')
+    setOk('')
+    const groups = getSortedGroups(list)
+    const selected = groups.filter((g) => selectedKeys.has(groupKeyFromGroup(g)))
+    if (selected.length === 0) {
+      setError('Select at least one card to delete')
+      return
+    }
+    setBulkConfirm({ open: true, groups: selected })
+  }
+
+  const confirmBulkDelete = async () => {
+    const groups = Array.isArray(bulkConfirm.groups) ? bulkConfirm.groups : []
+    if (groups.length === 0) return
+    try {
+      setPurging(true)
+      const payloadGroups = groups.map((g) => ({
+        year: g.year,
+        part: toAdminPartLabel(g.part),
+        paper: g.paper || undefined
+      }))
+      await bulkDeleteStructuredQuestions(payloadGroups)
+      const res = await getStructuredQuestions()
+      setList(toArray(res).map(normalize))
+      setSelectedKeys(new Set())
+      setOk(`Deleted ${groups.length} group(s)`)
+      closeBulkConfirm()
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Bulk delete failed')
     } finally {
       setPurging(false)
     }
@@ -449,10 +525,54 @@ export default function StructuredAdmin() {
       {ok && <div className="text-green-600 text-sm">{ok}</div>}
       {loading ? <Loader /> : (
         <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm text-gray-600 dark:text-gray-300">
+              Selected: {selectedKeys.size}
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 text-sm select-none">
+                <input
+                  type="checkbox"
+                  checked={selectedKeys.size > 0 && selectedKeys.size === getSortedGroups(list).length}
+                  onChange={(e) => {
+                    const groups = getSortedGroups(list)
+                    const allKeys = groups.map(groupKeyFromGroup)
+                    setSelectedKeys(e.target.checked ? new Set(allKeys) : new Set())
+                  }}
+                />
+                Select all
+              </label>
+              <button
+                type="button"
+                disabled={purging || selectedKeys.size === 0}
+                onClick={openBulkDeleteConfirm}
+                className="px-3 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                Delete selected
+              </button>
+            </div>
+          </div>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Object.values(groupByYearPart(list)).map((g) => (
-              <div key={`${g.year}-${g.part}-${g.paper}`} className="relative rounded bg-white dark:bg-gray-800 shadow p-4 cursor-pointer hover:shadow-md transition" onClick={() => navigate(`/structured-questions/${g.year}/${g.part}`)}>
-                <div className="font-semibold">{g.year} • {String(g.part).toUpperCase()} {g.paper ? `� ${g.paper}` : ""}</div>
+            {getSortedGroups(list).map((g) => (
+              <div key={groupKeyFromGroup(g)} className="relative rounded bg-white dark:bg-gray-800 shadow p-4 cursor-pointer hover:shadow-md transition" onClick={() => navigate(`/structured-questions/${g.year}/${g.part}${g.paper ? `/${encodeURIComponent(g.paper)}` : ''}`)}>
+                <input
+                  type="checkbox"
+                  className="absolute top-2 left-2 h-4 w-4"
+                  checked={selectedKeys.has(groupKeyFromGroup(g))}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    const key = groupKeyFromGroup(g)
+                    setSelectedKeys((prev) => {
+                      const next = new Set(prev)
+                      if (e.target.checked) next.add(key)
+                      else next.delete(key)
+                      return next
+                    })
+                  }}
+                />
+                <div className="font-semibold">
+                  {g.year} • {String(g.part).toUpperCase()} {g.paper ? `• ${g.paper}` : ''}
+                </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">{g.countParents} parent • {g.countSubs} sub</div>
                 <button
                   type="button"
@@ -501,12 +621,17 @@ export default function StructuredAdmin() {
               </div>
               <div className="space-y-2">
                 <label className="block text-sm">Paper (optional)</label>
-                <input
+                <select
                   className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
                   value={createForm.paper}
                   onChange={(e) => setCreateForm((s) => ({ ...s, paper: e.target.value }))}
-                  placeholder="Paper 1"
-                />
+                  disabled={!createForm.part || !createForm.year}
+                >
+                  <option value="">{createForm.part && createForm.year ? 'Select paper' : 'Select year/part first'}</option>
+                  {createPapers.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
                 <label className="block text-sm">Question Type</label>
@@ -535,51 +660,61 @@ export default function StructuredAdmin() {
               </div>
             ) : (
               <>
-                <div className="grid md:grid-cols-3 gap-3">
-                  <div className="space-y-2">
-                    <label className="block text-sm">Sub Part</label>
-                    <input
-                      className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
-                      value={createForm.subPart}
-                      onChange={(e) => setCreateForm((s) => ({ ...s, subPart: e.target.value }))}
-                      placeholder="a"
-                    />
-                  </div>
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                  <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Main Question Answer (Rich)</div>
+                  <AnswerBlocksEditor
+                    value={createForm.mainQuestionAnswerBlocks}
+                    onChange={(blocks) => setCreateForm((s) => ({ ...s, mainQuestionAnswerBlocks: blocks }))}
+                  />
                 </div>
-                <div className="space-y-2">
-                  <label className="block text-sm">Sub Question</label>
-                  <RichEditor value={createForm.subQuestionHtml} onChange={(html) => setCreateForm((s) => ({ ...s, subQuestionHtml: html }))} />
+
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Sub Questions</div>
+                  <button type="button" onClick={addCreateSub} className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 text-sm">
+                    + Add Sub Question
+                  </button>
                 </div>
-                <div className="grid md:grid-cols-3 gap-3">
-                  <div className="space-y-2">
-                    <label className="block text-sm">Answer Type</label>
-                    <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.answerType} onChange={(e) => setCreateForm((s) => ({ ...s, answerType: e.target.value }))}>
-                      <option value="text">Text</option>
-                      <option value="image">Image</option>
-                    </select>
-                  </div>
-                  {createForm.answerType === 'text' ? (
-                    <div className="md:col-span-2 space-y-2">
-                      <label className="block text-sm">Answer</label>
-                      <RichEditor value={createForm.answerHtml} onChange={(html) => setCreateForm((s) => ({ ...s, answerHtml: html }))} />
+
+                <div className="space-y-4">
+                  {(Array.isArray(createForm.subs) ? createForm.subs : []).map((sub, index) => (
+                    <div key={sub.sid || index} className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Sub Question {index + 1}</div>
+                        <button
+                          type="button"
+                          onClick={() => removeCreateSub(sub.sid)}
+                          className="px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+
+                      <div className="grid md:grid-cols-3 gap-3">
+                        <div className="space-y-2">
+                          <label className="block text-sm">Sub Part</label>
+                          <input
+                            className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
+                            value={sub.part}
+                            onChange={(e) => updateCreateSub(sub.sid, { part: e.target.value })}
+                            placeholder="a"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-sm">Sub Question</label>
+                        <RichEditor value={sub.textHtml} onChange={(html) => updateCreateSub(sub.sid, { textHtml: html })} />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-sm">Answer</label>
+                        <AnswerBlocksEditor
+                          value={sub.answerBlocks}
+                          onChange={(blocks) => updateCreateSub(sub.sid, { answerBlocks: blocks })}
+                        />
+                      </div>
                     </div>
-                  ) : (
-                    <div className="md:col-span-2 space-y-2">
-                      <label className="block text-sm">Answer Image</label>
-                      <input
-                        className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
-                        value={createForm.answerImageUrl}
-                        onChange={(e) => setCreateForm((s) => ({ ...s, answerImageUrl: e.target.value }))}
-                        placeholder="https://..."
-                      />
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
-                        onChange={(e) => uploadImageForCreate(e.target.files?.[0] || null)}
-                      />
-                    </div>
-                  )}
+                  ))}
                 </div>
               </>
             )}
@@ -617,6 +752,35 @@ export default function StructuredAdmin() {
           </div>
         </div>
       )}
+
+      {bulkConfirm.open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-md p-5 space-y-4">
+            <div className="font-semibold text-lg">Confirm Bulk Delete</div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              This will permanently delete all structured questions for {bulkConfirm.groups.length} selected group(s).
+            </p>
+            <div className="max-h-48 overflow-y-auto rounded border border-gray-200 dark:border-gray-700 p-3 text-sm space-y-1">
+              {(bulkConfirm.groups || []).map((g) => (
+                <div key={groupKeyFromGroup(g)} className="text-gray-900 dark:text-gray-100">
+                  {g.year} | {String(g.part).toUpperCase()} {g.paper ? `| ${g.paper}` : ''}
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-red-600">This action cannot be undone.</p>
+            <div className="flex gap-2 justify-end">
+              <button disabled={purging} onClick={closeBulkConfirm} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
+              <button
+                disabled={purging}
+                onClick={confirmBulkDelete}
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {purging ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -630,6 +794,37 @@ function groupByYearPart(list) {
     map[key].countSubs += (Array.isArray(p.sub_questions) ? p.sub_questions.length : 0)
   }
   return map
+}
+
+function groupKeyFromGroup(g) {
+  return `${g.year}-${g.part}-${g.paper || ''}`
+}
+
+function toAdminPartLabel(part) {
+  return String(part || '').toLowerCase().includes('2') ? 'Part 2' : 'Part 1'
+}
+
+function parsePaperNumber(paper) {
+  const m = String(paper || '').match(/(\d+)/)
+  return m ? Number(m[1]) : NaN
+}
+
+function getSortedGroups(list) {
+  const groups = Object.values(groupByYearPart(list))
+  return groups.sort((a, b) => {
+    const ay = Number(a.year); const by = Number(b.year)
+    if (Number.isFinite(ay) && Number.isFinite(by) && ay !== by) return ay - by
+    if (String(a.year) !== String(b.year)) return String(a.year).localeCompare(String(b.year))
+
+    const ap = String(a.part || '').toLowerCase().includes('2') ? 2 : 1
+    const bp = String(b.part || '').toLowerCase().includes('2') ? 2 : 1
+    if (ap !== bp) return ap - bp
+
+    const an = parsePaperNumber(a.paper)
+    const bn = parsePaperNumber(b.paper)
+    if (Number.isFinite(an) && Number.isFinite(bn) && an !== bn) return an - bn
+    return String(a.paper || '').localeCompare(String(b.paper || ''))
+  })
 }
 
 

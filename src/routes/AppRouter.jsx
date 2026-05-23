@@ -43,7 +43,7 @@ export function AppRouter() {
         <Route path="/support-tickets" element={<SupportTickets />} />
         <Route path="/opinions" element={<Opinions />} />
         <Route path="/structured-questions" element={<StructuredAdmin />} />
-        <Route path="/structured-questions/:year/:part" element={<StructuredDetail />} />
+        <Route path="/structured-questions/:year/:part/:paper?" element={<StructuredDetail />} />
         <Route path="/public-questions" element={<PublicQuestions />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { bulkDeleteOpinions, deleteOpinion, listOpinions } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
 
-const PAGE_SIZE = 10
-
 export default function Opinions() {
   const [opinions, setOpinions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -11,6 +9,7 @@ export default function Opinions() {
   const [ok, setOk] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [selectedIds, setSelectedIds] = useState([])
   const [bulkConfirm, setBulkConfirm] = useState({ open: false })
 
@@ -50,14 +49,14 @@ export default function Opinions() {
     })
   }, [filtered])
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
   const safePage = Math.min(page, totalPages)
-  const start = (safePage - 1) * PAGE_SIZE
-  const currentItems = sorted.slice(start, start + PAGE_SIZE)
+  const start = (safePage - 1) * pageSize
+  const currentItems = sorted.slice(start, start + pageSize)
 
   useEffect(() => {
     setPage(1)
-  }, [search])
+  }, [search, pageSize])
 
   useEffect(() => {
     if (page !== safePage) setPage(safePage)
@@ -258,6 +257,8 @@ export default function Opinions() {
             onPrev={() => setPage((p) => Math.max(1, p - 1))}
             onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
             onJump={(p) => setPage(p)}
+            pageSize={pageSize}
+            onPageSize={(n) => setPageSize(n)}
           />
         </>
       )}
@@ -291,13 +292,25 @@ function BodyCell({ children }) {
   return <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{children || '-'}</td>
 }
 
-function Pagination({ current, total, onPrev, onNext, onJump }) {
+function Pagination({ current, total, onPrev, onNext, onJump, pageSize, onPageSize }) {
   if (total <= 1) return null
   const pages = Array.from({ length: total }).map((_, i) => i + 1)
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-4 shadow dark:bg-gray-800">
       <div className="text-sm text-gray-500 dark:text-gray-400">
         Page {current} of {total}
+      </div>
+      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+        <div>Per page</div>
+        <select
+          value={pageSize}
+          onChange={(e) => onPageSize?.(Number(e.target.value) || 10)}
+          className="rounded border border-gray-300 bg-white px-3 py-1.5 dark:border-gray-700 dark:bg-gray-900"
+        >
+          {[10, 20, 50, 100].map((n) => (
+            <option key={n} value={n}>{n}</option>
+          ))}
+        </select>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <button

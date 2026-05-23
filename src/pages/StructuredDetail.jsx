@@ -22,7 +22,7 @@ const emptyEditState = {
 }
 
 export default function StructuredDetail() {
-  const { year, part } = useParams()
+  const { year, part, paper } = useParams()
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -62,6 +62,7 @@ export default function StructuredDetail() {
     dbid: p?._id || p?.id || '',
     year: String(p?.year ?? ''),
     part: String(p?.part ?? '').toLowerCase().includes('2') ? 'part2' : 'part1',
+    paper: String(p?.paper ?? ''),
     question_text: p?.question_text || p?.questionText || p?.title || '',
     questionId: p?.questionId || p?.question_id || p?.qid || p?.questionNo || p?.question_no || '',
     isDirect: Boolean(p?.isDirect) || (Array.isArray(p?.sub_questions) ? p.sub_questions.length === 0 : false),
@@ -90,7 +91,7 @@ export default function StructuredDetail() {
     let mounted = true
     const load = async () => {
       try {
-        const res = await getStructuredQuestionsFiltered(year, part)
+        const res = await getStructuredQuestionsFiltered(year, part, paper)
         const data = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : []
         const arr = data.map(norm).map((item, index) => ({
           ...item,
@@ -281,7 +282,7 @@ export default function StructuredDetail() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Structured | {year} | {String(part).toUpperCase()}</h2>
+        <h2 className="text-xl font-semibold">Structured | {year} | {String(part).toUpperCase()} {paper ? `| ${paper}` : ''}</h2>
       </div>
 
       {error && <div className="text-red-600 text-sm">{error}</div>}
