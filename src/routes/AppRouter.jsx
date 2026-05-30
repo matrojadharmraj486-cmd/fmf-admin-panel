@@ -13,8 +13,10 @@ import PublicQuestions from '../pages/PublicQuestions.jsx'
 import StructuredDetail from '../pages/StructuredDetail.jsx'
 import PrivacyPolicy from '../pages/PrivacyPolicy.jsx'
 import Subscriptions from '../pages/Subscriptions.jsx'
+import Coupons from '../pages/Coupons.jsx'
 import SupportTickets from '../pages/SupportTickets.jsx'
 import Opinions from '../pages/Opinions.jsx'
+import Notifications from '../pages/Notifications.jsx'
 import PaymentGatewaySettings from '../pages/PaymentGatewaySettings.jsx'
 import Faqs from '../pages/Faqs.jsx'
 import Orders from '../pages/Orders.jsx'
@@ -40,6 +42,8 @@ export function AppRouter() {
         <Route path="/faqs" element={<Faqs />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/subscriptions" element={<Subscriptions />} />
+        <Route path="/coupons" element={<Coupons />} />
+        <Route path="/notifications" element={<Notifications />} />
         <Route path="/support-tickets" element={<SupportTickets />} />
         <Route path="/opinions" element={<Opinions />} />
         <Route path="/structured-questions" element={<StructuredAdmin />} />

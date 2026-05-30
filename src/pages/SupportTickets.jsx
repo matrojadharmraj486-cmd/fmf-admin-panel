@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { listSupportTickets, updateSupportTicket } from '../services/api.js'
+import { bulkDeleteSupportTickets, listSupportTickets, updateSupportTicket } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
 
-const STATUS_OPTIONS = ['open', 'in_progress', 'pending_user', 'resolved', 'closed']
+const STATUS_OPTIONS = ['created', 'in_progress', 'resolved', 'closed']
 const CATEGORY_OPTIONS = ['']
 const PRIORITY_OPTIONS = ['', 'low', 'medium', 'high', 'urgent']
 
 const statusBadgeClass = {
-  open: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200',
+  created: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200',
   in_progress: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200',
-  pending_user: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200',
   resolved: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200',
   closed: 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
 }
@@ -18,9 +17,13 @@ export default function SupportTickets() {
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [ok, setOk] = useState('')
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [selectedIds, setSelectedIds] = useState([])
+  const [bulkConfirm, setBulkConfirm] = useState({ open: false })
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   const [filters, setFilters] = useState({
     status: '',
     category: '',
@@ -28,8 +31,7 @@ export default function SupportTickets() {
     search: ''
   })
   const [updateForm, setUpdateForm] = useState({
-    status: 'open',
-    assignedTo: '',
+    status: 'created',
     adminNote: '',
     statusNote: ''
   })
@@ -40,8 +42,10 @@ export default function SupportTickets() {
     try {
       setLoading(true)
       setError('')
+      setOk('')
       const res = await listSupportTickets()
       setTickets(toArray(res))
+      setSelectedIds([])
     } catch (err) {
       setTickets([])
       setError(err?.response?.data?.message || 'Failed to load support tickets')
@@ -78,8 +82,7 @@ export default function SupportTickets() {
   const openDetail = (ticket) => {
     setSelectedTicket(ticket)
     setUpdateForm({
-      status: getStatus(ticket) || 'open',
-      assignedTo: getAssignedToName(ticket),
+      status: getStatus(ticket) || 'created',
       adminNote: getAdminNote(ticket),
       statusNote: ''
     })
@@ -103,9 +106,9 @@ export default function SupportTickets() {
     try {
       setSaving(true)
       setError('')
+      setOk('')
       const payload = {
         status: updateForm.status,
-        assignedTo: updateForm.assignedTo,
         adminNote: updateForm.adminNote,
         statusNote: updateForm.statusNote
       }
@@ -113,16 +116,61 @@ export default function SupportTickets() {
       const nextTicket = extractTicket(updated) || {
         ...selectedTicket,
         status: updateForm.status,
-        assignedTo: updateForm.assignedTo,
         adminNote: updateForm.adminNote
       }
       setTickets((prev) => prev.map((ticket) => (getTicketId(ticket) === id ? nextTicket : ticket)))
       setSelectedTicket(nextTicket)
       setUpdateForm((prev) => ({ ...prev, statusNote: '' }))
+      setOk('Support ticket updated')
     } catch (err) {
       setError(err?.response?.data?.message || 'Failed to update support ticket')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const visibleTicketIds = useMemo(
+    () => filteredTickets.map(getTicketId).filter(Boolean),
+    [filteredTickets]
+  )
+  const allVisibleSelected = visibleTicketIds.length > 0 && visibleTicketIds.every((id) => selectedIds.includes(id))
+  const someVisibleSelected = visibleTicketIds.some((id) => selectedIds.includes(id)) && !allVisibleSelected
+
+  const toggleSelected = (id, checked) => {
+    if (!id) return
+    setSelectedIds((prev) => {
+      if (checked) return prev.includes(id) ? prev : [...prev, id]
+      return prev.filter((currentId) => currentId !== id)
+    })
+  }
+
+  const toggleAllVisible = (checked) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      for (const id of visibleTicketIds) {
+        if (checked) next.add(id)
+        else next.delete(id)
+      }
+      return Array.from(next)
+    })
+  }
+
+  const confirmBulkDelete = async () => {
+    if (selectedIds.length === 0) return
+    try {
+      setBulkDeleting(true)
+      setError('')
+      setOk('')
+      const res = await bulkDeleteSupportTickets(selectedIds)
+      const deleted = res?.deleted ?? res?.data?.deleted ?? selectedIds.length
+      setBulkConfirm({ open: false })
+      setSelectedIds([])
+      await fetchTickets()
+      setOk(`Deleted ${deleted} support ${deleted === 1 ? 'ticket' : 'tickets'}`)
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to bulk delete support tickets')
+    } finally {
+      setBulkDeleting(false)
     }
   }
 
@@ -135,7 +183,7 @@ export default function SupportTickets() {
         </div>
       </div>
 
-      <div className="grid gap-3 rounded-xl bg-white p-4 shadow dark:bg-gray-800 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 rounded-xl bg-white p-4 shadow dark:bg-gray-800 md:grid-cols-2 xl:grid-cols-5">
         <select
           value={filters.status}
           onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
@@ -175,9 +223,19 @@ export default function SupportTickets() {
           placeholder="Search ticket no / subject / description"
           className="rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
         />
+
+        <button
+          type="button"
+          onClick={() => setBulkConfirm({ open: true })}
+          disabled={selectedIds.length === 0}
+          className="rounded bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+        >
+          Delete Selected{selectedIds.length ? ` (${selectedIds.length})` : ''}
+        </button>
       </div>
 
       {error && <div className="text-sm text-red-600">{error}</div>}
+      {ok && <div className="text-sm text-green-600">{ok}</div>}
 
       {loading ? (
         <Loader />
@@ -191,6 +249,17 @@ export default function SupportTickets() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
+                  <HeaderCell>
+                    <input
+                      type="checkbox"
+                      checked={allVisibleSelected}
+                      ref={(el) => {
+                        if (!el) return
+                        el.indeterminate = someVisibleSelected
+                      }}
+                      onChange={(e) => toggleAllVisible(e.target.checked)}
+                    />
+                  </HeaderCell>
                   <HeaderCell>Ticket Number</HeaderCell>
                   <HeaderCell>Subject</HeaderCell>
                   <HeaderCell>Category</HeaderCell>
@@ -206,6 +275,13 @@ export default function SupportTickets() {
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredTickets.map((ticket) => (
                   <tr key={getTicketId(ticket) || getTicketNumber(ticket)} className="bg-white dark:bg-gray-800">
+                    <BodyCell>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(getTicketId(ticket))}
+                        onChange={(e) => toggleSelected(getTicketId(ticket), e.target.checked)}
+                      />
+                    </BodyCell>
                     <BodyCell>{getTicketNumber(ticket)}</BodyCell>
                     <BodyCell>{getSubject(ticket)}</BodyCell>
                     <BodyCell>{getCategory(ticket)}</BodyCell>
@@ -230,6 +306,12 @@ export default function SupportTickets() {
             {filteredTickets.map((ticket) => (
               <div key={getTicketId(ticket) || getTicketNumber(ticket)} className="rounded-xl bg-white p-4 shadow dark:bg-gray-800">
                 <div className="flex items-start justify-between gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(getTicketId(ticket))}
+                    onChange={(e) => toggleSelected(getTicketId(ticket), e.target.checked)}
+                    className="mt-1"
+                  />
                   <div className="space-y-1">
                     <div className="text-sm text-gray-500 dark:text-gray-400">{getTicketNumber(ticket)}</div>
                     <div className="font-semibold">{getSubject(ticket)}</div>
@@ -255,6 +337,36 @@ export default function SupportTickets() {
         </>
       )}
 
+      {bulkConfirm.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md space-y-4 rounded-xl bg-white p-5 shadow dark:bg-gray-800">
+            <div className="text-lg font-semibold">Confirm Delete</div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Delete {selectedIds.length} selected support {selectedIds.length === 1 ? 'ticket' : 'tickets'}?
+            </p>
+            <p className="text-sm text-red-600">This action cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setBulkConfirm({ open: false })}
+                disabled={bulkDeleting}
+                className="rounded border border-gray-300 px-4 py-2 dark:border-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmBulkDelete}
+                disabled={bulkDeleting}
+                className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {bulkDeleting ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {detailOpen && selectedTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl dark:bg-gray-800">
@@ -275,7 +387,6 @@ export default function SupportTickets() {
                     <DetailField label="Category" value={getCategory(selectedTicket)} />
                     <DetailField label="Priority" value={formatLabel(getPriority(selectedTicket))} />
                     <DetailField label="Current Status" value={<StatusBadge status={getStatus(selectedTicket)} />} />
-                    <DetailField label="Assigned To" value={getAssignedToName(selectedTicket) || '-'} />
                     <DetailField label="Created Date" value={formatDate(getCreatedAt(selectedTicket))} />
                     <DetailField label="Updated Date" value={formatDate(getUpdatedAt(selectedTicket))} />
                   </div>
@@ -310,14 +421,6 @@ export default function SupportTickets() {
                 </section>
 
                 <section className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-                  <div className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Assigned Admin</div>
-                  <div className="space-y-2 text-sm">
-                    <DetailRow label="Name" value={getAssignedToName(selectedTicket) || '-'} />
-                    <DetailRow label="Email" value={getAssignedToEmail(selectedTicket) || '-'} />
-                  </div>
-                </section>
-
-                <section className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
                   <div className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Admin Note</div>
                   <div className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-100">
                     {getAdminNote(selectedTicket) || 'No admin note yet.'}
@@ -336,13 +439,6 @@ export default function SupportTickets() {
                         <option key={status} value={status}>{formatLabel(status)}</option>
                       ))}
                     </select>
-
-                    <input
-                      value={updateForm.assignedTo}
-                      onChange={(e) => setUpdateForm((prev) => ({ ...prev, assignedTo: e.target.value }))}
-                      placeholder="Assigned to"
-                      className="w-full rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-                    />
 
                     <textarea
                       value={updateForm.adminNote}
@@ -416,7 +512,7 @@ function DetailRow({ label, value }) {
 function StatusBadge({ status }) {
   const normalized = normalizeStatus(status)
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass[normalized] || statusBadgeClass.open}`}>
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass[normalized] || statusBadgeClass.created}`}>
       {formatLabel(normalized)}
     </span>
   )
@@ -449,7 +545,7 @@ function StatusTimeline({ history }) {
   return (
     <div className="space-y-4">
       {history.map((entry, index) => {
-        const status = normalizeStatus(pickValue(entry, ['status', 'toStatus', 'currentStatus']) || 'open')
+        const status = normalizeStatus(pickValue(entry, ['status', 'toStatus', 'currentStatus']) || 'created')
         const note = pickValue(entry, ['note', 'statusNote', 'message', 'remark'])
         const by = pickValue(entry, ['changedByName', 'updatedByName', 'adminName']) || pickValue(pickValue(entry, ['changedBy', 'updatedBy', 'admin']), ['name', 'fullName', 'email'])
         const changedAt = pickValue(entry, ['createdAt', 'updatedAt', 'changedAt', 'date'])
@@ -516,7 +612,10 @@ function getPriority(ticket) {
 }
 
 function normalizeStatus(status) {
-  return String(status || 'open').toLowerCase()
+  const normalized = String(status || 'created').toLowerCase()
+  if (normalized === 'open') return 'created'
+  if (normalized === 'pending_user') return 'in_progress'
+  return normalized
 }
 
 function getStatus(ticket) {
@@ -547,22 +646,6 @@ function getUserPhone(ticket) {
   const user = getUser(ticket)
   if (typeof user === 'string') return ''
   return pickValue(user, ['mobileNumber', 'phone', 'mobile', 'contactNumber']) || ''
-}
-
-function getAssignedTo(ticket) {
-  return pickValue(ticket, ['assignedTo', 'assignedAdmin', 'admin']) || {}
-}
-
-function getAssignedToName(ticket) {
-  const assigned = getAssignedTo(ticket)
-  if (typeof assigned === 'string') return assigned
-  return pickValue(assigned, ['name', 'fullName', 'email']) || ''
-}
-
-function getAssignedToEmail(ticket) {
-  const assigned = getAssignedTo(ticket)
-  if (typeof assigned === 'string') return ''
-  return pickValue(assigned, ['email']) || ''
 }
 
 function getAdminNote(ticket) {

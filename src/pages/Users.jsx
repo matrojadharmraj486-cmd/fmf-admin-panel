@@ -11,6 +11,7 @@ import {
   bulkDeleteAdminUsers
 } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
+import { GridFooter } from '../shared/GridFooter.jsx'
 
 export default function Users() {
   const [query, setQuery] = useState('')
@@ -432,18 +433,6 @@ export default function Users() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-            <div>Per page</div>
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value) || 10)}
-              className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
-            >
-              {[10, 20, 50, 100].map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </div>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -469,6 +458,7 @@ export default function Users() {
               <th className="px-4 py-2 text-left">Name</th>
               <th className="px-4 py-2 text-left">Email</th>
               <th className="px-4 py-2 text-left">Mobile</th>
+              <th className="px-4 py-2 text-left">Subscription</th>
               <th className="px-4 py-2 text-left">isVerified</th>
               <th className="px-4 py-2 text-left">Status</th>
               <th className="px-4 py-2 text-right">Actions</th>
@@ -483,6 +473,9 @@ export default function Users() {
                 <td className="px-4 py-2">{u.fullName}</td>
                 <td className="px-4 py-2">{u.email}</td>
                 <td className="px-4 py-2">{u.mobileNumber || u.phone || u.mobile || '-'}</td>
+                <td className="px-4 py-2">
+                  <SubscriptionStatus user={u} />
+                </td>
                 <td className="px-4 py-2">{pickBool(u, ['isVerified', 'verified']) ? 'Yes' : 'No'}</td>
                 <td className="px-4 py-2">{u.blocked ? 'Blocked' : 'Active'}</td>
                 <td className="px-4 py-2 text-right space-x-2">
@@ -505,41 +498,17 @@ export default function Users() {
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-4 shadow dark:bg-gray-800">
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            Page {safePage} of {totalPages}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={safePage === 1}
-              className="rounded border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-gray-700"
-            >
-              Prev
-            </button>
-            {Array.from({ length: totalPages }).map((_, i) => {
-              const p = i + 1
-              return (
-                <button
-                  key={p}
-                  onClick={() => setPage(p)}
-                  className={`rounded px-3 py-1.5 text-sm ${p === safePage ? 'bg-gray-900 text-white dark:bg-gray-700' : 'border border-gray-300 dark:border-gray-700'}`}
-                >
-                  {p}
-                </button>
-              )
-            })}
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={safePage === totalPages}
-              className="rounded border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-gray-700"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
+      <GridFooter
+        page={safePage}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        onPageSize={(n) => setPageSize(n)}
+        onPrev={() => setPage((p) => Math.max(1, p - 1))}
+        onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+        onPageChange={(p) => setPage(p)}
+        totalItems={filtered.length}
+        itemLabel={filtered.length === 1 ? 'user' : 'users'}
+      />
 
       {detailOpen && selectedUser && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
@@ -578,6 +547,7 @@ export default function Users() {
                   </InfoCard>
                   <InfoCard title="Status">
                     <InfoRow label="Blocked" value={selectedUser.blocked ? 'Yes' : 'No'} />
+                    <InfoRow label="Subscription" value={<SubscriptionStatus user={selectedUser} />} />
                     <InfoRow label="Created" value={formatDate(selectedUser.createdAt || selectedUser.created_at)} />
                     <InfoRow label="Updated" value={formatDate(selectedUser.updatedAt || selectedUser.updated_at)} />
                   </InfoCard>
@@ -822,6 +792,22 @@ function InfoRow({ label, value }) {
   )
 }
 
+function SubscriptionStatus({ user }) {
+  const status = getSubscriptionStatus(user)
+  return (
+    <div className="space-y-1">
+      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${status.active ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
+        {status.active ? 'Active' : 'Inactive'}
+      </span>
+      {status.active ? (
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          {status.remainingDays !== null ? `${status.remainingDays} ${status.remainingDays === 1 ? 'day' : 'days'} left` : 'Remaining days unavailable'}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function toArray(value) {
   if (Array.isArray(value)) return value
   if (Array.isArray(value?.data)) return value.data
@@ -871,6 +857,49 @@ function formatDate(value) {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return String(value)
   return d.toLocaleString()
+}
+
+function getSubscriptionStatus(user) {
+  const subscription = user?.subscription && typeof user.subscription === 'object' ? user.subscription : {}
+  const statusText = String(
+    pickValue(user, ['subscriptionStatus', 'paymentStatus']) ||
+    pickValue(subscription, ['status', 'subscriptionStatus']) ||
+    ''
+  ).toLowerCase()
+  const activeBool = pickBool(user, ['isSubscribed', 'subscribed', 'subscriptionActive', 'hasActiveSubscription'])
+  const nestedActiveBool = pickBool(subscription, ['isActive', 'active', 'isSubscribed'])
+  const endDate = pickValue(user, ['subscriptionEndDate', 'subscriptionExpiresAt', 'subscriptionExpiry', 'expiresAt', 'validTill']) ||
+    pickValue(subscription, ['endDate', 'expiresAt', 'expiryDate', 'validTill', 'subscriptionEndDate'])
+  const computedDays = getRemainingDaysFromDate(endDate)
+  const remainingDays = getRemainingDays(user, subscription, computedDays)
+  const hasPositiveRemaining = typeof remainingDays === 'number' && remainingDays > 0
+  const explicitActive = activeBool ?? nestedActiveBool
+  const active = typeof explicitActive === 'boolean'
+    ? explicitActive
+    : statusText === 'active' || hasPositiveRemaining
+
+  return {
+    active: Boolean(active || hasPositiveRemaining),
+    remainingDays: typeof remainingDays === 'number' ? Math.max(0, remainingDays) : null
+  }
+}
+
+function getRemainingDays(user, subscription, computedDays) {
+  const raw = pickValue(user, ['remainingDays', 'subscriptionRemainingDays', 'remainingSubscriptionDays']) ||
+    pickValue(subscription, ['remainingDays', 'remainingSubscriptionDays'])
+  if (raw !== '') {
+    const value = Number(raw)
+    if (Number.isFinite(value)) return Math.ceil(value)
+  }
+  return computedDays
+}
+
+function getRemainingDaysFromDate(value) {
+  if (!value) return null
+  const endDate = new Date(value)
+  if (Number.isNaN(endDate.getTime())) return null
+  const diff = endDate.getTime() - Date.now()
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
 }
 
 function extractUser(res) {
@@ -984,7 +1013,21 @@ function renderOtherRows(user) {
     'createdAt',
     'created_at',
     'updatedAt',
-    'updated_at'
+    'updated_at',
+    'subscription',
+    'subscriptionStatus',
+    'isSubscribed',
+    'subscribed',
+    'subscriptionActive',
+    'hasActiveSubscription',
+    'subscriptionEndDate',
+    'subscriptionExpiresAt',
+    'subscriptionExpiry',
+    'expiresAt',
+    'validTill',
+    'remainingDays',
+    'subscriptionRemainingDays',
+    'remainingSubscriptionDays'
   ])
   const entries = Object.entries(user || {}).filter(([k]) => !blacklist.has(k))
   if (entries.length === 0) return <div className="text-sm text-gray-500 dark:text-gray-400">-</div>

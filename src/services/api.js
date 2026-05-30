@@ -116,6 +116,9 @@ export const bulkDeleteAdminUsers = async (ids = []) => {
 export const sendNotification = async ({ userId, title, body, data = {} }) => (
   await api.post('/api/admin/notifications/send', { userId, title, body, data })
 ).data
+export const sendBulkNotification = async ({ userIds = [], sendToAll = false, title, body, data = {} }) => (
+  await api.post('/api/admin/notifications/send-bulk', { userIds, sendToAll, title, body, data })
+).data
 
 // Payments (Admin)
 export const listPayments = async (params = {}) => (await api.get('/api/admin/payments', { params })).data
@@ -160,22 +163,24 @@ export const setQOTD = async ({ question, answerType, answer, answerImage, answe
 export const getQOTD = async () => (await api.get('/api/question-of-the-day')).data
 
 // Banners
-export const uploadBanner = async ({ file, imageUrl, bannerType, redirectionUrl }) => {
+export const uploadBanner = async ({ file, imageUrl, bannerType, position, redirectionUrl }) => {
   if (file) {
     const form = new FormData()
     form.append('image', file)
     if (bannerType) form.append('bannerType', bannerType)
+    if (position) form.append('position', String(position))
     if (redirectionUrl) form.append('redirectionUrl', redirectionUrl)
     return (await api.post('/api/admin/banners', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data
   }
-  return (await api.post('/api/admin/banners', { imageUrl, bannerType, redirectionUrl })).data
+  return (await api.post('/api/admin/banners', { imageUrl, bannerType, position, redirectionUrl })).data
 }
 export const listBanners = async (params = {}) => (await api.get('/api/admin/banner', { params })).data
 export const deleteBanner = async (id) => (await api.delete(`/api/admin/banners/${id}`)).data
-export const updateBanner = async (id, { file, imageUrl, bannerType, redirectionUrl, isActive }) => {
+export const updateBanner = async (id, { file, imageUrl, bannerType, position, redirectionUrl, isActive }) => {
   if (file) {
     const form = new FormData()
     if (bannerType) form.append('bannerType', bannerType)
+    if (position) form.append('position', String(position))
     if (redirectionUrl) form.append('redirectionUrl', redirectionUrl)
     if (typeof isActive !== 'undefined') form.append('isActive', String(isActive))
     form.append('image', file)
@@ -183,6 +188,7 @@ export const updateBanner = async (id, { file, imageUrl, bannerType, redirection
   }
   const payload = {}
   if (bannerType) payload.bannerType = bannerType
+  if (position) payload.position = position
   if (redirectionUrl) payload.redirectionUrl = redirectionUrl
   if (imageUrl) payload.imageUrl = imageUrl
   if (typeof isActive !== 'undefined') payload.isActive = isActive
@@ -371,6 +377,11 @@ export const updateSubscriptionStatus = async (id, isActive) => (
 ).data
 export const deleteSubscription = async (id) => (await api.delete(`/api/admin/subscriptions/${id}`)).data
 
+// Coupons
+export const listCoupons = async (params = {}) => (await api.get('/api/admin/coupons', { params })).data
+export const createCoupon = async (payload) => (await api.post('/api/admin/coupons', payload)).data
+export const deleteCoupon = async (id) => (await api.delete(`/api/admin/coupons/${id}`)).data
+
 // Payment Gateway (Admin)
 export const getPaymentGatewaySettings = async () => (await api.get('/api/admin/payment-gateway')).data
 export const updatePaymentGatewaySettings = async (payload) => (await api.put('/api/admin/payment-gateway', payload)).data
@@ -382,6 +393,9 @@ export const listSupportTickets = async (params = {}) => {
 }
 export const updateSupportTicket = async (id, payload) => (
   await api.patch(`/api/admin/support-tickets/${id}`, payload)
+).data
+export const bulkDeleteSupportTickets = async (ids = []) => (
+  await api.post('/api/admin/support-tickets/bulk-delete', { ids })
 ).data
 
 // Opinions

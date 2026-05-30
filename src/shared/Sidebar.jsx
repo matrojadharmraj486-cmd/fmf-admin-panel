@@ -15,6 +15,8 @@ const nav = [
   { to: '/payment-gateway', label: 'Payment Gateway' },
   { to: '/opinions', label: 'Opinions' },
   { to: '/subscriptions', label: 'Subscriptions' },
+  { to: '/coupons', label: 'Coupons System' },
+  { to: '/notifications', label: 'Notifications' },
   { to: '/support-tickets', label: 'Support Tickets' },
   // { to: '/public-questions', label: 'Public' }
 ]

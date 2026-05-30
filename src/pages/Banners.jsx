@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { listBanners, uploadBanner, deleteBanner, updateBanner } from "../services/api.js";
 
 export default function Banners() {
+  const bannerTypeOptions = ["type1", "type2", "type3", "type4", "type5"];
+  const bannerPositionOptions = [1, 2, 3, 4, 5];
   const routeOptions = [
     { label: "Splash", value: "/" },
     { label: "Authentication", value: "/authenticationView" },
@@ -35,6 +37,7 @@ export default function Banners() {
   const [imageUrl, setImageUrl] = useState("");
   const [sourceType, setSourceType] = useState("file");
   const [bannerType, setBannerType] = useState("");
+  const [bannerPosition, setBannerPosition] = useState("");
   const [redirectionUrl, setRedirectionUrl] = useState("");
   const [routeChoice, setRouteChoice] = useState("");
   const [filterType, setFilterType] = useState("");
@@ -46,6 +49,7 @@ export default function Banners() {
   const [editFile, setEditFile] = useState(null);
   const [editImageUrl, setEditImageUrl] = useState("");
   const [editBannerType, setEditBannerType] = useState("");
+  const [editBannerPosition, setEditBannerPosition] = useState("");
   const [editRedirectionUrl, setEditRedirectionUrl] = useState("");
   const [editRouteChoice, setEditRouteChoice] = useState("");
   const [editIsActive, setEditIsActive] = useState(true);
@@ -55,6 +59,7 @@ export default function Banners() {
     const matched = routeOptions.find((r) => r.value === redirect);
     setEditId(b?._id || b?.id || "");
     setEditBannerType(b?.bannerType || b?.type || "");
+    setEditBannerPosition(b?.position ? String(b.position) : "");
     setEditRedirectionUrl(redirect);
     setEditRouteChoice(matched ? matched.value : redirect ? "other" : "");
     setEditImageUrl(b?.imageUrl || "");
@@ -71,6 +76,7 @@ export default function Banners() {
     setEditFile(null);
     setEditImageUrl("");
     setEditBannerType("");
+    setEditBannerPosition("");
     setEditRedirectionUrl("");
     setEditRouteChoice("");
     setEditSourceType("keep");
@@ -80,7 +86,8 @@ export default function Banners() {
     try {
       setLoading(true);
       const res = await listBanners(filterType ? { bannerType: filterType } : {});
-      setItems(Array.isArray(res) ? res : res?.data || []);
+      const banners = Array.isArray(res) ? res : res?.data || [];
+      setItems([...banners].sort((a, b) => (a?.position || 999) - (b?.position || 999)));
     } catch (err) {
       setItems([]);
       setError("Failed to load banners");
@@ -99,6 +106,11 @@ export default function Banners() {
 
     if (!bannerType.trim()) {
       setError("Please enter banner type");
+      return;
+    }
+
+    if (!bannerPosition) {
+      setError("Please select banner position");
       return;
     }
 
@@ -135,11 +147,13 @@ export default function Banners() {
         file: sourceType === "file" ? file : null,
         imageUrl: sourceType === "link" ? imageUrl.trim() : "",
         bannerType: bannerType.trim(),
+        position: Number(bannerPosition),
         redirectionUrl: redirectionUrl.trim(),
       });
       setFile(null);
       setImageUrl("");
       setBannerType("");
+      setBannerPosition("");
       setRedirectionUrl("");
       setRouteChoice("");
       setFileInputKey((k) => k + 1);
@@ -167,6 +181,11 @@ export default function Banners() {
 
     if (!editBannerType.trim()) {
       setError("Please enter banner type");
+      return;
+    }
+
+    if (!editBannerPosition) {
+      setError("Please select banner position");
       return;
     }
 
@@ -204,6 +223,7 @@ export default function Banners() {
         file: editSourceType === "file" ? editFile : null,
         imageUrl: editSourceType === "link" ? editImageUrl.trim() : "",
         bannerType: editBannerType.trim(),
+        position: Number(editBannerPosition),
         redirectionUrl: editRedirectionUrl.trim(),
         isActive: editIsActive,
       });
@@ -270,9 +290,24 @@ export default function Banners() {
           className="min-w-[200px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
         >
           <option value="">Select banner type</option>
-          <option value="type1">type1</option>
-          <option value="type2">type2</option>
-          <option value="type3">type3</option>
+          {bannerTypeOptions.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={bannerPosition}
+          onChange={(e) => setBannerPosition(e.target.value)}
+          className="min-w-[180px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+        >
+          <option value="">Select position</option>
+          {bannerPositionOptions.map((position) => (
+            <option key={position} value={position}>
+              Position {position}
+            </option>
+          ))}
         </select>
 
         <select
@@ -350,6 +385,7 @@ export default function Banners() {
               <div className="p-2 flex items-center justify-between">
                 <div className="text-xs text-gray-500">
                   <div>{b.bannerType || b.type || "—"}</div>
+                  <div>Position: {b.position || "—"}</div>
                   {b.redirectionUrl ? (
                     <div className="truncate max-w-[180px]">
                       {b.redirectionUrl}
@@ -440,9 +476,24 @@ export default function Banners() {
               className="min-w-[200px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
             >
               <option value="">Select banner type</option>
-              <option value="type1">type1</option>
-              <option value="type2">type2</option>
-              <option value="type3">type3</option>
+              {bannerTypeOptions.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={editBannerPosition}
+              onChange={(e) => setEditBannerPosition(e.target.value)}
+              className="min-w-[200px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+            >
+              <option value="">Select position</option>
+              {bannerPositionOptions.map((position) => (
+                <option key={position} value={position}>
+                  Position {position}
+                </option>
+              ))}
             </select>
 
             <select
