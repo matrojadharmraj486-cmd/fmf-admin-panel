@@ -1,8 +1,27 @@
 import { useEffect, useState } from "react";
 import { listBanners, uploadBanner, deleteBanner, updateBanner } from "../services/api.js";
 
+const bannerTypeOptions = [
+  { label: "Banner 1", value: "banner1" },
+  { label: "Banner 2", value: "banner2" },
+  { label: "Banner 3", value: "banner3" },
+  { label: "Banner 4", value: "banner4" },
+  { label: "Banner 5", value: "banner5" },
+];
+
+function normalizeBannerType(value) {
+  const raw = String(value || "").trim();
+  const match = raw.match(/^(?:banner|type)\s*(\d+)$/i);
+  if (match) return `banner${match[1]}`;
+  return raw;
+}
+
+function formatBannerType(value) {
+  const normalized = normalizeBannerType(value);
+  return bannerTypeOptions.find((type) => type.value === normalized)?.label || value || "-";
+}
+
 export default function Banners() {
-  const bannerTypeOptions = ["type1", "type2", "type3", "type4", "type5"];
   const bannerPositionOptions = [1, 2, 3, 4, 5];
   const routeOptions = [
     { label: "Splash", value: "/" },
@@ -58,7 +77,7 @@ export default function Banners() {
     const redirect = b?.redirectionUrl || "";
     const matched = routeOptions.find((r) => r.value === redirect);
     setEditId(b?._id || b?.id || "");
-    setEditBannerType(b?.bannerType || b?.type || "");
+    setEditBannerType(normalizeBannerType(b?.bannerType || b?.type || ""));
     setEditBannerPosition(b?.position ? String(b.position) : "");
     setEditRedirectionUrl(redirect);
     setEditRouteChoice(matched ? matched.value : redirect ? "other" : "");
@@ -105,7 +124,7 @@ export default function Banners() {
     setError("");
 
     if (!bannerType.trim()) {
-      setError("Please enter banner type");
+      setError("Please select banner type");
       return;
     }
 
@@ -146,7 +165,7 @@ export default function Banners() {
       await uploadBanner({
         file: sourceType === "file" ? file : null,
         imageUrl: sourceType === "link" ? imageUrl.trim() : "",
-        bannerType: bannerType.trim(),
+        bannerType: normalizeBannerType(bannerType),
         position: Number(bannerPosition),
         redirectionUrl: redirectionUrl.trim(),
       });
@@ -180,7 +199,7 @@ export default function Banners() {
     setError("");
 
     if (!editBannerType.trim()) {
-      setError("Please enter banner type");
+      setError("Please select banner type");
       return;
     }
 
@@ -222,7 +241,7 @@ export default function Banners() {
       await updateBanner(editId, {
         file: editSourceType === "file" ? editFile : null,
         imageUrl: editSourceType === "link" ? editImageUrl.trim() : "",
-        bannerType: editBannerType.trim(),
+        bannerType: normalizeBannerType(editBannerType),
         position: Number(editBannerPosition),
         redirectionUrl: editRedirectionUrl.trim(),
         isActive: editIsActive,
@@ -291,8 +310,8 @@ export default function Banners() {
         >
           <option value="">Select banner type</option>
           {bannerTypeOptions.map((type) => (
-            <option key={type} value={type}>
-              {type}
+            <option key={type.value} value={type.value}>
+              {type.label}
             </option>
           ))}
         </select>
@@ -348,13 +367,18 @@ export default function Banners() {
       </form>
 
       <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="text"
+        <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          placeholder="Filter by banner type"
           className="min-w-[220px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-        />
+        >
+          <option value="">All banner types</option>
+          {bannerTypeOptions.map((type) => (
+            <option key={type.value} value={type.value}>
+              {type.label}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           onClick={() => setFilterType("")}
@@ -384,8 +408,8 @@ export default function Banners() {
               />
               <div className="p-2 flex items-center justify-between">
                 <div className="text-xs text-gray-500">
-                  <div>{b.bannerType || b.type || "—"}</div>
-                  <div>Position: {b.position || "—"}</div>
+                  <div>{formatBannerType(b.bannerType || b.type)}</div>
+                  <div>Position: {b.position || "-"}</div>
                   {b.redirectionUrl ? (
                     <div className="truncate max-w-[180px]">
                       {b.redirectionUrl}
@@ -477,8 +501,8 @@ export default function Banners() {
             >
               <option value="">Select banner type</option>
               {bannerTypeOptions.map((type) => (
-                <option key={type} value={type}>
-                  {type}
+                <option key={type.value} value={type.value}>
+                  {type.label}
                 </option>
               ))}
             </select>
@@ -547,4 +571,3 @@ export default function Banners() {
     </div>
   );
 }
-

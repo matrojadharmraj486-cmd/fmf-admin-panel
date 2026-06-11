@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getOrderById, listOrders } from '../services/api.js'
+import { bulkDeleteOrders, deleteOrder, getOrderById, listOrders } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
 import { GridFooter } from '../shared/GridFooter.jsx'
 
@@ -11,6 +11,10 @@ export default function Orders() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
+  const [busy, setBusy] = useState({ id: '', action: '' })
+  const [selectedIds, setSelectedIds] = useState([])
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: '', label: '' })
+  const [bulkConfirm, setBulkConfirm] = useState({ open: false })
 
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
@@ -57,6 +61,11 @@ export default function Orders() {
     return () => { alive = false; clearTimeout(t) }
   }, [params])
 
+  useEffect(() => {
+    const allowed = new Set(items.map(getId).filter(Boolean))
+    setSelectedIds((prev) => prev.filter((id) => allowed.has(id)))
+  }, [items])
+
   const onChange = (patch) => {
     setPage(1)
     setFilters((prev) => ({ ...prev, ...patch }))
@@ -78,6 +87,90 @@ export default function Orders() {
   }
 
   const closeView = () => setDetail({ open: false, id: '', loading: false, data: null })
+
+  const selectedCount = selectedIds.length
+  const currentPageIds = useMemo(() => items.map(getId).filter(Boolean), [items])
+  const allPageSelected = currentPageIds.length > 0 && currentPageIds.every((id) => selectedIds.includes(id))
+  const somePageSelected = currentPageIds.some((id) => selectedIds.includes(id)) && !allPageSelected
+
+  const reloadOrders = async () => {
+    const res = await listOrders(params)
+    setItems(toArray(res))
+  }
+
+  const toggleSelected = (id, checked) => {
+    if (!id) return
+    setSelectedIds((prev) => {
+      if (checked) return prev.includes(id) ? prev : [...prev, id]
+      return prev.filter((currentId) => currentId !== id)
+    })
+  }
+
+  const toggleSelectAllPage = (checked) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      for (const id of currentPageIds) {
+        if (checked) next.add(id)
+        else next.delete(id)
+      }
+      return Array.from(next)
+    })
+  }
+
+  const openDeleteConfirm = (order) => {
+    const id = getId(order)
+    if (!id) {
+      setError('Unable to delete this order because it has no id')
+      return
+    }
+    setDeleteConfirm({ open: true, id, label: getDisplayOrderId(order) || getOrderId(order) || id })
+  }
+
+  const closeDeleteConfirm = () => setDeleteConfirm({ open: false, id: '', label: '' })
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.id) return
+    try {
+      setBusy({ id: deleteConfirm.id, action: 'delete' })
+      setError('')
+      setOk('')
+      await deleteOrder(deleteConfirm.id)
+      setSelectedIds((prev) => prev.filter((id) => id !== deleteConfirm.id))
+      closeDeleteConfirm()
+      await reloadOrders()
+      setOk('Order deleted')
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to delete order')
+    } finally {
+      setBusy({ id: '', action: '' })
+    }
+  }
+
+  const confirmBulkDelete = async () => {
+    if (selectedIds.length === 0) return
+    const ids = [...selectedIds]
+    try {
+      setBusy({ id: 'bulk', action: 'bulk-delete' })
+      setError('')
+      setOk('')
+      let deleted = ids.length
+      try {
+        const data = await bulkDeleteOrders(ids)
+        deleted = data?.deleted ?? data?.data?.deleted ?? ids.length
+      } catch (err) {
+        if (err?.response?.status !== 404) throw err
+        for (const id of ids) await deleteOrder(id)
+      }
+      setBulkConfirm({ open: false })
+      setSelectedIds([])
+      await reloadOrders()
+      setOk(`Deleted ${deleted} ${deleted === 1 ? 'order' : 'orders'}`)
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to bulk delete orders')
+    } finally {
+      setBusy({ id: '', action: '' })
+    }
+  }
 
   const titleCount = items.length
 
@@ -160,6 +253,15 @@ export default function Orders() {
         >
           Clear
         </button>
+
+        <button
+          type="button"
+          onClick={() => setBulkConfirm({ open: true })}
+          disabled={selectedCount === 0 || (busy.id === 'bulk' && busy.action === 'bulk-delete')}
+          className="self-end rounded bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+        >
+          {busy.id === 'bulk' && busy.action === 'bulk-delete' ? 'Deleting...' : `Bulk Delete${selectedCount ? ` (${selectedCount})` : ''}`}
+        </button>
       </div>
 
       {error && <div className="text-sm text-red-600">{error}</div>}
@@ -177,31 +279,60 @@ export default function Orders() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
+                  <Th>
+                    <input
+                      type="checkbox"
+                      checked={allPageSelected}
+                      ref={(el) => {
+                        if (!el) return
+                        el.indeterminate = somePageSelected
+                      }}
+                      onChange={(e) => toggleSelectAllPage(e.target.checked)}
+                    />
+                  </Th>
                   <Th>Order ID</Th>
                   <Th>Order Date</Th>
                   <Th>Customer Name</Th>
                   <Th>Payment Status</Th>
                   <Th>Order Status</Th>
+                  <Th>Discounted Price</Th>
                   <Th>Download Invoice</Th>
-                  <Th align="right">View</Th>
+                  <Th align="right">Actions</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {items.map((o, idx) => (
                   <tr key={getId(o) || `${getOrderId(o)}-${idx}`} className="bg-white dark:bg-gray-800">
+                    <Td>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(getId(o))}
+                        onChange={(e) => toggleSelected(getId(o), e.target.checked)}
+                      />
+                    </Td>
                     <Td mono>{getDisplayOrderId(o, idx, page, pageSize)}</Td>
                     <Td>{formatDate(getOrderDate(o))}</Td>
                     <Td>{getUserName(o)}</Td>
                     <Td><StatusBadge status={getPaymentStatus(o)} /></Td>
                     <Td><StatusBadge status={getOrderStatus(o)} /></Td>
+                    <Td>{formatDiscountedPrice(o)}</Td>
                     <Td><InvoiceLink order={o} /></Td>
                     <Td align="right">
-                      <button
-                        onClick={() => openView(o)}
-                        className="rounded bg-gray-900 px-3 py-1 text-white dark:bg-gray-700"
-                      >
-                        View
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openView(o)}
+                          className="rounded bg-gray-900 px-3 py-1 text-white dark:bg-gray-700"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => openDeleteConfirm(o)}
+                          disabled={busy.id === getId(o) && busy.action === 'delete'}
+                          className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700 disabled:opacity-60"
+                        >
+                          {busy.id === getId(o) && busy.action === 'delete' ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
                     </Td>
                   </tr>
                 ))}
@@ -213,9 +344,17 @@ export default function Orders() {
             {items.map((o, idx) => (
               <div key={getId(o) || `${getOrderId(o)}-${idx}`} className="rounded-xl bg-white p-4 shadow dark:bg-gray-800 space-y-2">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{getDisplayOrderId(o, idx, page, pageSize)}</div>
-                    <div className="font-semibold">{getUserName(o)}</div>
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(getId(o))}
+                      onChange={(e) => toggleSelected(getId(o), e.target.checked)}
+                      className="mt-1"
+                    />
+                    <div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{getDisplayOrderId(o, idx, page, pageSize)}</div>
+                      <div className="font-semibold">{getUserName(o)}</div>
+                    </div>
                   </div>
                   <StatusBadge status={getOrderStatus(o)} />
                 </div>
@@ -223,11 +362,21 @@ export default function Orders() {
                   <Meta label="Order Date" value={formatDate(getOrderDate(o))} />
                   <Meta label="Payment Status" value={formatStatusLabel(getPaymentStatus(o))} />
                   <Meta label="Order Status" value={formatStatusLabel(getOrderStatus(o))} />
+                  <Meta label="Discounted Price" value={formatDiscountedPrice(o)} />
                   <Meta label="Invoice" value={<InvoiceLink order={o} />} />
                 </div>
-                <button onClick={() => openView(o)} className="w-full rounded bg-gray-900 px-3 py-2 text-white dark:bg-gray-700">
-                  View
-                </button>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button onClick={() => openView(o)} className="w-full rounded bg-gray-900 px-3 py-2 text-white dark:bg-gray-700">
+                    View
+                  </button>
+                  <button
+                    onClick={() => openDeleteConfirm(o)}
+                    disabled={busy.id === getId(o) && busy.action === 'delete'}
+                    className="w-full rounded bg-red-600 px-3 py-2 text-white hover:bg-red-700 disabled:opacity-60"
+                  >
+                    {busy.id === getId(o) && busy.action === 'delete' ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -260,6 +409,62 @@ export default function Orders() {
             ) : (
               <OrderDetailsView order={detail.data} />
             )}
+          </div>
+        </div>
+      )}
+
+      {deleteConfirm.open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-md p-5 space-y-4">
+            <div className="font-semibold text-lg">Confirm Delete</div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Delete order <span className="font-medium">{deleteConfirm.label}</span>?
+            </p>
+            <p className="text-sm text-red-600">This action cannot be undone.</p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={closeDeleteConfirm}
+                disabled={busy.id === deleteConfirm.id && busy.action === 'delete'}
+                className="px-4 py-2 rounded border dark:border-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={busy.id === deleteConfirm.id && busy.action === 'delete'}
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {busy.id === deleteConfirm.id && busy.action === 'delete' ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bulkConfirm.open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-md p-5 space-y-4">
+            <div className="font-semibold text-lg">Confirm Bulk Delete</div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Delete {selectedCount} selected {selectedCount === 1 ? 'order' : 'orders'}?
+            </p>
+            <p className="text-sm text-red-600">This action cannot be undone.</p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setBulkConfirm({ open: false })}
+                disabled={busy.id === 'bulk' && busy.action === 'bulk-delete'}
+                className="px-4 py-2 rounded border dark:border-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmBulkDelete}
+                disabled={busy.id === 'bulk' && busy.action === 'bulk-delete'}
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {busy.id === 'bulk' && busy.action === 'bulk-delete' ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -327,13 +532,81 @@ function getPlanName(o) {
   return s?.name || s?.title || s?.planName || '-'
 }
 
-function formatAmount(o) {
-  const amount = o?.totalAmount ?? o?.amountInr ?? o?.amount ?? o?.amount_inr ?? o?.total ?? ''
-  const currency = o?.currency || 'INR'
+function getCurrency(o) {
+  return o?.currency || o?.currencyCode || 'INR'
+}
+
+function pickFirstValue(source, keys) {
+  for (const key of keys) {
+    const value = source?.[key]
+    if (value !== null && typeof value !== 'undefined' && value !== '') return value
+  }
+  return ''
+}
+
+function getOriginalAmount(o) {
+  const subscription = o?.subscription && typeof o.subscription === 'object' ? o.subscription : {}
+  return pickFirstValue(o, [
+    'originalAmount',
+    'originalPrice',
+    'baseAmount',
+    'basePrice',
+    'subtotal',
+    'subTotal',
+    'planAmount',
+    'planPrice'
+  ]) || pickFirstValue(subscription, ['totalPrice', 'price', 'amount'])
+}
+
+function getDiscountAmount(o) {
+  const coupon = o?.coupon && typeof o.coupon === 'object' ? o.coupon : {}
+  return pickFirstValue(o, [
+    'discountAmount',
+    'couponDiscountAmount',
+    'discount',
+    'discountValueApplied',
+    'couponDiscount'
+  ]) || pickFirstValue(coupon, ['discountAmount', 'amountOff', 'discountApplied'])
+}
+
+function getDiscountedAmount(o) {
+  return pickFirstValue(o, [
+    'discountedAmount',
+    'discountedPrice',
+    'finalAmount',
+    'finalPrice',
+    'payableAmount',
+    'paidAmount',
+    'totalAmount',
+    'amountInr',
+    'amount',
+    'amount_inr',
+    'total'
+  ])
+}
+
+function getCouponCode(o) {
+  const coupon = o?.coupon && typeof o.coupon === 'object' ? o.coupon : {}
+  return o?.couponCode || o?.appliedCouponCode || coupon?.code || coupon?.couponCode || '-'
+}
+
+function formatMoneyValue(amount, currency = 'INR') {
   if (amount === null || typeof amount === 'undefined' || amount === '') return '-'
   const n = Number(amount)
   if (!Number.isFinite(n)) return `${amount} ${currency}`.trim()
-  return `${n} ${currency}`.trim()
+  return `${n.toFixed(2)} ${currency}`.trim()
+}
+
+function formatOriginalAmount(o) {
+  return formatMoneyValue(getOriginalAmount(o), getCurrency(o))
+}
+
+function formatDiscountAmount(o) {
+  return formatMoneyValue(getDiscountAmount(o), getCurrency(o))
+}
+
+function formatDiscountedPrice(o) {
+  return formatMoneyValue(getDiscountedAmount(o), getCurrency(o))
 }
 
 function getPaymentStatus(o) {
@@ -447,7 +720,10 @@ function OrderDetailsView({ order }) {
         </Card>
         <Card title="Amount">
           <Meta label="Plan Details" value={getPlanName(order)} />
-          <Meta label="Total Amount" value={formatAmount(order)} />
+          <Meta label="Original Price" value={formatOriginalAmount(order)} />
+          <Meta label="Coupon Code" value={getCouponCode(order)} />
+          <Meta label="Discount" value={formatDiscountAmount(order)} />
+          <Meta label="Discounted Price" value={formatDiscountedPrice(order)} />
           <Meta label="Mobile" value={getUserMobile(order)} />
           <Meta label="Email" value={getUserEmail(order)} />
         </Card>

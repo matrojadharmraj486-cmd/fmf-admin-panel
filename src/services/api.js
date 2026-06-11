@@ -126,6 +126,10 @@ export const listPayments = async (params = {}) => (await api.get('/api/admin/pa
 // Orders (Admin)
 export const listOrders = async (params = {}) => (await api.get('/api/admin/orders', { params })).data
 export const getOrderById = async (id) => (await api.get(`/api/admin/orders/${id}`)).data
+export const deleteOrder = async (id) => (await api.delete(`/api/admin/orders/${id}`)).data
+export const bulkDeleteOrders = async (ids = []) => (
+  await api.post('/api/admin/orders/bulk-delete', { ids })
+).data
 
 // Questions
 export const createQuestion = async ({ text, year, part, answerType, answerText, answerImage }) => {
