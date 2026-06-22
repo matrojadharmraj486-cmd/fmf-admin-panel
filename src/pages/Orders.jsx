@@ -316,7 +316,7 @@ export default function Orders() {
                     <Td><StatusBadge status={getPaymentStatus(o)} /></Td>
                     <Td><StatusBadge status={getOrderStatus(o)} /></Td>
                     <Td>{formatDiscountedPrice(o)}</Td>
-                    <Td><InvoiceLink order={o} /></Td>
+                    <Td><InvoiceDownloadButton order={o} /></Td>
                     <Td align="right">
                       <div className="flex justify-end gap-2">
                         <button
@@ -363,7 +363,7 @@ export default function Orders() {
                   <Meta label="Payment Status" value={formatStatusLabel(getPaymentStatus(o))} />
                   <Meta label="Order Status" value={formatStatusLabel(getOrderStatus(o))} />
                   <Meta label="Discounted Price" value={formatDiscountedPrice(o)} />
-                  <Meta label="Invoice" value={<InvoiceLink order={o} />} />
+                  <Meta label="Invoice" value={<InvoiceDownloadButton order={o} />} />
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <button onClick={() => openView(o)} className="w-full rounded bg-gray-900 px-3 py-2 text-white dark:bg-gray-700">
@@ -625,11 +625,6 @@ function getOrderDate(o) {
   return o?.orderDate || o?.createdAt || o?.created_at || o?.date || ''
 }
 
-function getInvoiceUrl(o) {
-  const invoice = o?.invoice && typeof o.invoice === 'object' ? o.invoice : {}
-  return o?.invoiceUrl || o?.invoiceURL || o?.downloadInvoiceUrl || o?.invoiceDownloadUrl || invoice?.url || invoice?.downloadUrl || ''
-}
-
 function formatDate(value) {
   if (!value) return '-'
   const date = new Date(value)
@@ -668,20 +663,36 @@ function StatusBadge({ status }) {
   )
 }
 
-function InvoiceLink({ order }) {
-  const href = getInvoiceUrl(order)
-  if (!href) {
-    return <span className="text-sm text-gray-400">Not available</span>
+function InvoiceDownloadButton({ order }) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  const onDownload = async () => {
+    if (busy) return
+    setErr('')
+    setBusy(true)
+    try {
+      const { downloadInvoice } = await import('../shared/TransactionInvoicePdf.jsx')
+      await downloadInvoice(order)
+    } catch (e) {
+      setErr(e?.message || 'Failed to generate invoice')
+    } finally {
+      setBusy(false)
+    }
   }
+
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="inline-flex rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
-    >
-      Download
-    </a>
+    <div className="inline-flex flex-col items-start gap-1">
+      <button
+        type="button"
+        onClick={onDownload}
+        disabled={busy}
+        className="inline-flex items-center rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-60"
+      >
+        {busy ? 'Generating...' : 'Download'}
+      </button>
+      {err ? <span className="text-xs text-red-600">{err}</span> : null}
+    </div>
   )
 }
 
