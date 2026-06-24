@@ -11,81 +11,105 @@ export default function PrivacyPolicy() {
               <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900">
                 Privacy Policy
               </h1>
-              <p className="text-sm text-slate-500">
-                Last Updated: {new Date().toDateString()}
-              </p>
+              <p className="text-sm text-slate-500">Last Updated: 01-June-2026</p>
             </div>
 
             <div className="prose prose-slate max-w-none pt-6">
-              <h2>1. Introduction</h2>
               <p>
-                This Privacy Policy explains how the Medical Exam Application collects,
-                uses, and protects your personal information when you use our mobile
-                application available on Android and iOS platforms.
+                Family Medicine Flashback ("we", "our", or "us") respects your privacy
+                and is committed to protecting your personal information.
               </p>
 
-              <h2>2. Information We Collect</h2>
+              <h2>Information We Collect</h2>
+              <p>When you register for an account, we may collect:</p>
               <ul>
-                <li>Name, email address, and mobile number</li>
-                <li>Account login details (OTP / Google login)</li>
-                <li>Course subscriptions and payment information</li>
-                <li>Device information and usage analytics</li>
-                <li>Support tickets and communication data</li>
+                <li>Full Name</li>
+                <li>Email Address</li>
+                <li>Mobile Number</li>
+                <li>Address</li>
+                <li>Date of Birth</li>
+                <li>Profile Photograph</li>
+                <li>Billing Information required for purchases</li>
               </ul>
 
-              <h2>3. How We Use Your Information</h2>
+              <h2>How We Use Information</h2>
+              <p>We use the information to:</p>
               <ul>
-                <li>To provide access to courses and exam content</li>
-                <li>To manage subscription plans</li>
-                <li>To process payments and generate invoices</li>
-                <li>To send important notifications</li>
-                <li>To improve our services and user experience</li>
+                <li>Create and manage user accounts</li>
+                <li>Provide access to educational content</li>
+                <li>Process payments and purchases</li>
+                <li>Communicate important account information</li>
+                <li>Provide customer support</li>
+                <li>Improve application functionality</li>
               </ul>
 
-              <h2>4. Payments</h2>
+              <h2>Educational Purpose</h2>
               <p>
-                Payments made through the application may use third-party payment
-                gateways such as UPI, Cards, or Wallets. We do not store sensitive
-                payment information on our servers.
+                Family Medicine Flashback is an educational platform designed for exam
+                preparation through question-and-answer based learning content. The
+                application does not provide medical diagnosis, treatment recommendations,
+                or healthcare services.
               </p>
 
-              <h2>5. Security</h2>
+              <h2>Data Sharing</h2>
               <p>
-                We implement security measures to protect user data including account
-                protection against unauthorized access, screenshot prevention, download
-                restrictions, and multiple login protections.
+                We do not sell, rent, or share user personal information with advertisers
+                or data brokers.
+              </p>
+              <p>
+                We may share limited information with service providers only when necessary
+                to provide app functionality and payment processing.
               </p>
 
-              <h2>6. Notifications</h2>
+              <h2>Tracking</h2>
               <p>
-                The app may send push notifications, emails, and SMS for plan expiry,
-                subscription updates, and important announcements.
+                Family Medicine Flashback does not track users across third-party
+                applications, websites, or services for advertising purposes.
               </p>
 
-              <h2>7. Data Sharing</h2>
+              <h2>Data Security</h2>
               <p>
-                We do not sell or rent personal data. Data may be shared only with
-                trusted service providers such as payment gateways or analytics services
-                required for application functionality.
+                We implement reasonable administrative and technical measures to protect
+                user information against unauthorized access, disclosure, or misuse.
               </p>
 
-              <h2>8. User Rights</h2>
+              <h2>User Rights</h2>
               <p>
-                Users can request modification or deletion of their account information
-                by contacting support through the application or email.
+                Users may request account updates or deletion by contacting us at:
+              </p>
+              <p>
+                Email:{" "}
+                <a href="mailto:help@familymedicineflashback.com">
+                  help@familymedicineflashback.com
+                </a>
               </p>
 
-              <h2>9. Children's Privacy</h2>
-              <p>Our services are not intended for children under 13 years of age.</p>
-
-              <h2>10. Changes to Privacy Policy</h2>
+              <h2>Children's Privacy</h2>
               <p>
-                We may update this policy from time to time. Users will be notified of
-                major changes through app notifications.
+                Our services are not intended for children under the age required by
+                applicable laws.
               </p>
 
-              <h2>11. Contact Us</h2>
-              <p>If you have any questions regarding this Privacy Policy, please contact us.</p>
+              <h2>Contact Us</h2>
+              <p>
+                If you have any questions regarding this Privacy Policy, please contact:
+              </p>
+              <p>
+                Email:{" "}
+                <a href="mailto:help@familymedicineflashback.com">
+                  help@familymedicineflashback.com
+                </a>
+              </p>
+              <p>
+                Website:{" "}
+                <a
+                  href="https://familymedicineflashback.com"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  familymedicineflashback.com
+                </a>
+              </p>
             </div>
           </div>
         </div>
