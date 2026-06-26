@@ -1,5 +1,33 @@
 import { useEffect, useState } from "react";
 import { listBanners, uploadBanner, deleteBanner, updateBanner } from "../services/api.js";
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Alert,
+  TextField,
+  Grid,
+  CircularProgress,
+  IconButton,
+  Tooltip,
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  FormLabel,
+  Switch,
+} from "@mui/material";
+import { Icon } from "@iconify/react";
 
 const bannerTypeOptions = [
   { label: "Banner 1", value: "banner1" },
@@ -101,6 +129,7 @@ export default function Banners() {
     setEditSourceType("keep");
     setEditIsActive(true);
   };
+
   const fetchBanners = async () => {
     try {
       setLoading(true);
@@ -184,11 +213,11 @@ export default function Banners() {
     }
   };
 
-  // 🔥 Delete Banner
+  // Delete Banner
   const remove = async (id) => {
     try {
       await deleteBanner(id);
-      await fetchBanners(); 
+      await fetchBanners();
     } catch {
       setError("Failed to delete banner");
     }
@@ -254,320 +283,374 @@ export default function Banners() {
       setEditSaving(false);
     }
   };
+
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Banners</h2>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      {/* Page Header */}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+        <Typography variant="h5" fontWeight={600}>
+          Banners
+        </Typography>
+      </Box>
 
-      <form
-        onSubmit={add}
-        className="flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 p-4 rounded shadow"
-      >
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="radio"
-              name="sourceType"
-              value="file"
-              checked={sourceType === "file"}
-              onChange={() => setSourceType("file")}
-            />
-            Upload file
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="radio"
-              name="sourceType"
-              value="link"
-              checked={sourceType === "link"}
-              onChange={() => setSourceType("link")}
-            />
-            Image link
-          </label>
-        </div>
+      {/* Add Banner Form */}
+      <Card>
+        <CardContent>
+          <Box component="form" onSubmit={add} sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-start" }}>
+            {/* Source Type Radio */}
+            <FormControl component="fieldset">
+              <FormLabel component="legend" sx={{ fontSize: "0.75rem" }}>Image Source</FormLabel>
+              <RadioGroup
+                row
+                name="sourceType"
+                value={sourceType}
+                onChange={(e) => setSourceType(e.target.value)}
+              >
+                <FormControlLabel value="file" control={<Radio size="small" />} label="Upload file" />
+                <FormControlLabel value="link" control={<Radio size="small" />} label="Image link" />
+              </RadioGroup>
+            </FormControl>
 
-        {sourceType === "file" ? (
-          <input
-            key={fileInputKey}
-            type="file"
-            accept="image/*"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
-          />
-        ) : (
-          <input
-            type="url"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://example.com/banner.jpg"
-            className="min-w-[260px] flex-1 rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-          />
-        )}
+            {/* File or URL input */}
+            {sourceType === "file" ? (
+              <Box>
+                <input
+                  key={fileInputKey}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  style={{ display: "block", marginTop: 8 }}
+                />
+              </Box>
+            ) : (
+              <TextField
+                size="small"
+                type="url"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://example.com/banner.jpg"
+                label="Image URL"
+                sx={{ minWidth: 260 }}
+              />
+            )}
 
-        <select
-          value={bannerType}
-          onChange={(e) => setBannerType(e.target.value)}
-          className="min-w-[200px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-        >
-          <option value="">Select banner type</option>
-          {bannerTypeOptions.map((type) => (
-            <option key={type.value} value={type.value}>
-              {type.label}
-            </option>
-          ))}
-        </select>
+            {/* Banner Type */}
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Banner Type</InputLabel>
+              <Select
+                value={bannerType}
+                label="Banner Type"
+                onChange={(e) => setBannerType(e.target.value)}
+              >
+                <MenuItem value="">Select banner type</MenuItem>
+                {bannerTypeOptions.map((type) => (
+                  <MenuItem key={type.value} value={type.value}>
+                    {type.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-        <select
-          value={bannerPosition}
-          onChange={(e) => setBannerPosition(e.target.value)}
-          className="min-w-[180px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-        >
-          <option value="">Select position</option>
-          {bannerPositionOptions.map((position) => (
-            <option key={position} value={position}>
-              Position {position}
-            </option>
-          ))}
-        </select>
+            {/* Banner Position */}
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>Position</InputLabel>
+              <Select
+                value={bannerPosition}
+                label="Position"
+                onChange={(e) => setBannerPosition(e.target.value)}
+              >
+                <MenuItem value="">Select position</MenuItem>
+                {bannerPositionOptions.map((position) => (
+                  <MenuItem key={position} value={position}>
+                    Position {position}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-        <select
-          value={routeChoice}
-          onChange={(e) => {
-            const val = e.target.value;
-            setRouteChoice(val);
-            if (val && val !== "other") setRedirectionUrl(val);
-            if (val === "other") setRedirectionUrl("");
-          }}
-          className="min-w-[260px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-        >
-          <option value="">Select redirection route</option>
-          {routeOptions.map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.label}
-            </option>
-          ))}
-        </select>
+            {/* Redirection Route */}
+            <FormControl size="small" sx={{ minWidth: 260 }}>
+              <InputLabel>Redirection Route</InputLabel>
+              <Select
+                value={routeChoice}
+                label="Redirection Route"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setRouteChoice(val);
+                  if (val && val !== "other") setRedirectionUrl(val);
+                  if (val === "other") setRedirectionUrl("");
+                }}
+              >
+                <MenuItem value="">Select redirection route</MenuItem>
+                {routeOptions.map((r) => (
+                  <MenuItem key={r.value} value={r.value}>
+                    {r.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-        {routeChoice === "other" ? (
-          <input
-            type="text"
-            value={redirectionUrl}
-            onChange={(e) => setRedirectionUrl(e.target.value)}
-            placeholder="https://example.com or /custom-path"
-            className="min-w-[260px] flex-1 rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-          />
-        ) : null}
+            {/* External URL input */}
+            {routeChoice === "other" && (
+              <TextField
+                size="small"
+                value={redirectionUrl}
+                onChange={(e) => setRedirectionUrl(e.target.value)}
+                placeholder="https://example.com or /custom-path"
+                label="External URL"
+                sx={{ minWidth: 260, flex: 1 }}
+              />
+            )}
 
-        <button
-          type="submit"
-          disabled={uploading}
-          className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-50"
-        >
-          {uploading ? "Uploading..." : "Upload"}
-        </button>
-      </form>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={uploading}
+              startIcon={uploading ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:upload" />}
+              sx={{ alignSelf: "center" }}
+            >
+              {uploading ? "Uploading..." : "Upload"}
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="min-w-[220px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-        >
-          <option value="">All banner types</option>
-          {bannerTypeOptions.map((type) => (
-            <option key={type.value} value={type.value}>
-              {type.label}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
+      {/* Filter Row */}
+      <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 2 }}>
+        <FormControl size="small" sx={{ minWidth: 220 }}>
+          <InputLabel>Filter by Type</InputLabel>
+          <Select
+            value={filterType}
+            label="Filter by Type"
+            onChange={(e) => setFilterType(e.target.value)}
+          >
+            <MenuItem value="">All banner types</MenuItem>
+            {bannerTypeOptions.map((type) => (
+              <MenuItem key={type.value} value={type.value}>
+                {type.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Button
+          variant="outlined"
           onClick={() => setFilterType("")}
-          className="px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
+          startIcon={<Icon icon="mdi:filter-off" />}
         >
           Clear filter
-        </button>
-      </div>
+        </Button>
+      </Box>
 
-      {error && <div className="text-red-600 text-sm">{error}</div>}
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
 
+      {/* Banner Grid */}
       {loading ? (
-        <div>Loading...</div>
+        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+          <CircularProgress />
+        </Box>
       ) : items.length === 0 ? (
-        <div className="text-gray-500">No banners found</div>
+        <Card>
+          <CardContent sx={{ textAlign: "center", py: 6 }}>
+            <Typography color="text.secondary">No banners found</Typography>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <Grid container spacing={2}>
           {items.map((b) => (
-            <div
-              key={b._id}
-              className="rounded bg-white dark:bg-gray-800 shadow overflow-hidden"
-            >
-              <img
-                src={b.image || b.imageUrl}
-                alt="banner"
-                className="w-full h-40 object-cover"
-              />
-              <div className="p-2 flex items-center justify-between">
-                <div className="text-xs text-gray-500">
-                  <div>{formatBannerType(b.bannerType || b.type)}</div>
-                  <div>Position: {b.position || "-"}</div>
-                  {b.redirectionUrl ? (
-                    <div className="truncate max-w-[180px]">
-                      {b.redirectionUrl}
-                    </div>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => openEdit(b)}
-                    className="px-3 py-1 rounded bg-blue-600 text-white"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => remove(b._id)}
-                    className="px-3 py-1 rounded bg-red-600 text-white"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
+            <Grid item key={b._id} xs={12} sm={6} md={4} lg={3}>
+              <Card sx={{ overflow: "hidden" }}>
+                <Box
+                  component="img"
+                  src={b.image || b.imageUrl}
+                  alt="banner"
+                  sx={{ width: "100%", height: 160, objectFit: "cover", display: "block" }}
+                />
+                <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+                  <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        {formatBannerType(b.bannerType || b.type)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Position: {b.position || "-"}
+                      </Typography>
+                      {b.redirectionUrl && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                          sx={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                        >
+                          {b.redirectionUrl}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Box sx={{ display: "flex", gap: 0.5 }}>
+                      <Tooltip title="Edit">
+                        <IconButton size="small" color="primary" onClick={() => openEdit(b)}>
+                          <Icon icon="mdi:pencil" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton size="small" color="error" onClick={() => remove(b._id)}>
+                          <Icon icon="mdi:delete" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
           ))}
-        </div>
+        </Grid>
       )}
 
-      {editOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <form onSubmit={saveEdit} className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="font-semibold text-lg">Edit Banner</div>
-              <button type="button" onClick={closeEdit} className="text-gray-500">Close</button>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onClose={closeEdit} maxWidth="md" fullWidth>
+        <Box component="form" onSubmit={saveEdit}>
+          <DialogTitle>Edit Banner</DialogTitle>
+          <DialogContent dividers>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}>
+              {/* Source Type Radio */}
+              <FormControl component="fieldset">
+                <FormLabel component="legend" sx={{ fontSize: "0.75rem" }}>Image Source</FormLabel>
+                <RadioGroup
+                  row
                   name="editSourceType"
-                  value="keep"
-                  checked={editSourceType === "keep"}
-                  onChange={() => setEditSourceType("keep")}
+                  value={editSourceType}
+                  onChange={(e) => setEditSourceType(e.target.value)}
+                >
+                  <FormControlLabel value="keep" control={<Radio size="small" />} label="Keep existing image" />
+                  <FormControlLabel value="file" control={<Radio size="small" />} label="Upload file" />
+                  <FormControlLabel value="link" control={<Radio size="small" />} label="Image link" />
+                </RadioGroup>
+              </FormControl>
+
+              {editSourceType === "file" && (
+                <Box>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setEditFile(e.target.files?.[0] || null)}
+                    style={{ display: "block" }}
+                  />
+                </Box>
+              )}
+
+              {editSourceType === "link" && (
+                <TextField
+                  size="small"
+                  type="url"
+                  value={editImageUrl}
+                  onChange={(e) => setEditImageUrl(e.target.value)}
+                  placeholder="https://example.com/banner.jpg"
+                  label="Image URL"
+                  fullWidth
                 />
-                Keep existing image
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="editSourceType"
-                  value="file"
-                  checked={editSourceType === "file"}
-                  onChange={() => setEditSourceType("file")}
+              )}
+
+              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                {/* Edit Banner Type */}
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>Banner Type</InputLabel>
+                  <Select
+                    value={editBannerType}
+                    label="Banner Type"
+                    onChange={(e) => setEditBannerType(e.target.value)}
+                  >
+                    <MenuItem value="">Select banner type</MenuItem>
+                    {bannerTypeOptions.map((type) => (
+                      <MenuItem key={type.value} value={type.value}>
+                        {type.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                {/* Edit Banner Position */}
+                <FormControl size="small" sx={{ minWidth: 180 }}>
+                  <InputLabel>Position</InputLabel>
+                  <Select
+                    value={editBannerPosition}
+                    label="Position"
+                    onChange={(e) => setEditBannerPosition(e.target.value)}
+                  >
+                    <MenuItem value="">Select position</MenuItem>
+                    {bannerPositionOptions.map((position) => (
+                      <MenuItem key={position} value={position}>
+                        Position {position}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* Edit Redirection Route */}
+              <FormControl size="small" sx={{ minWidth: 260 }}>
+                <InputLabel>Redirection Route</InputLabel>
+                <Select
+                  value={editRouteChoice}
+                  label="Redirection Route"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEditRouteChoice(val);
+                    if (val && val !== "other") setEditRedirectionUrl(val);
+                    if (val === "other") setEditRedirectionUrl("");
+                  }}
+                >
+                  <MenuItem value="">Select redirection route</MenuItem>
+                  {routeOptions.map((r) => (
+                    <MenuItem key={r.value} value={r.value}>
+                      {r.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {editRouteChoice === "other" && (
+                <TextField
+                  size="small"
+                  value={editRedirectionUrl}
+                  onChange={(e) => setEditRedirectionUrl(e.target.value)}
+                  placeholder="https://example.com or /custom-path"
+                  label="External URL"
+                  fullWidth
                 />
-                Upload file
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="editSourceType"
-                  value="link"
-                  checked={editSourceType === "link"}
-                  onChange={() => setEditSourceType("link")}
-                />
-                Image link
-              </label>
-            </div>
+              )}
 
-            {editSourceType === "file" ? (
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setEditFile(e.target.files?.[0] || null)}
-                className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
+              {/* Active Toggle */}
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={editIsActive}
+                    onChange={(e) => setEditIsActive(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label="Active"
               />
-            ) : editSourceType === "link" ? (
-              <input
-                type="url"
-                value={editImageUrl}
-                onChange={(e) => setEditImageUrl(e.target.value)}
-                placeholder="https://example.com/banner.jpg"
-                className="min-w-[260px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-              />
-            ) : null}
-
-            <select
-              value={editBannerType}
-              onChange={(e) => setEditBannerType(e.target.value)}
-              className="min-w-[200px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button onClick={closeEdit} variant="outlined">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={editSaving}
+              startIcon={editSaving ? <CircularProgress size={16} color="inherit" /> : null}
             >
-              <option value="">Select banner type</option>
-              {bannerTypeOptions.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={editBannerPosition}
-              onChange={(e) => setEditBannerPosition(e.target.value)}
-              className="min-w-[200px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-            >
-              <option value="">Select position</option>
-              {bannerPositionOptions.map((position) => (
-                <option key={position} value={position}>
-                  Position {position}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={editRouteChoice}
-              onChange={(e) => {
-                const val = e.target.value;
-                setEditRouteChoice(val);
-                if (val && val !== "other") setEditRedirectionUrl(val);
-                if (val === "other") setEditRedirectionUrl("");
-              }}
-              className="min-w-[260px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-            >
-              <option value="">Select redirection route</option>
-              {routeOptions.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-
-            {editRouteChoice === "other" ? (
-              <input
-                type="text"
-                value={editRedirectionUrl}
-                onChange={(e) => setEditRedirectionUrl(e.target.value)}
-                placeholder="https://example.com or /custom-path"
-                className="min-w-[260px] rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-              />
-            ) : null}
-
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={editIsActive}
-                onChange={(e) => setEditIsActive(e.target.checked)}
-              />
-              Active
-            </label>
-
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={closeEdit} className="px-4 py-2 rounded border border-gray-300 dark:border-gray-700">
-                Cancel
-              </button>
-              <button type="submit" disabled={editSaving} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
-                {editSaving ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-    </div>
+              {editSaving ? "Saving..." : "Save"}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+    </Box>
   );
 }

@@ -23,12 +23,12 @@ import Orders from '../pages/Orders.jsx'
 import { ProtectedRoute } from '../routes/ProtectedRoute.jsx'
 import { AppLayout } from '../shared/AppLayout.jsx'
 
-export function AppRouter() {
+export function AppRouter({ toggleMode, mode }) {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+      <Route element={<ProtectedRoute><AppLayout toggleMode={toggleMode} mode={mode} /></ProtectedRoute>}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/users" element={<Users />} />

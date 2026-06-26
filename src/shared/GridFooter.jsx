@@ -1,3 +1,8 @@
+import {
+  Box, Typography, Select, MenuItem, FormControl, Pagination,
+  InputLabel, useTheme
+} from '@mui/material'
+
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
 
 export function GridFooter({
@@ -12,66 +17,104 @@ export function GridFooter({
   totalItems,
   itemLabel = 'items'
 }) {
+  const theme = useTheme()
   const safeTotalPages = totalPages || null
   const hasKnownTotal = Number.isFinite(Number(safeTotalPages))
-  const disablePrev = page <= 1
-  const disableNext = hasKnownTotal ? page >= safeTotalPages : !canNext
-  const pageNumbers = hasKnownTotal
-    ? Array.from({ length: safeTotalPages }).map((_, index) => index + 1)
-    : []
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-4 shadow dark:bg-gray-800">
-      <div className="text-sm text-gray-500 dark:text-gray-400">
+    <Box
+      sx={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 2,
+        px: 3,
+        py: 2,
+        bgcolor: 'background.paper',
+        borderTop: `1px solid ${theme.palette.divider}`,
+        borderRadius: '0 0 10px 10px',
+      }}
+    >
+      <Typography variant="body2" color="text.secondary">
         {hasKnownTotal ? `Page ${page} of ${safeTotalPages}` : `Page ${page}`}
-        {typeof totalItems !== 'undefined' ? ` - ${totalItems} ${itemLabel}` : ''}
-      </div>
+        {typeof totalItems !== 'undefined' ? ` · ${totalItems} ${itemLabel}` : ''}
+      </Typography>
 
-      <div className="flex flex-wrap items-center gap-3">
-        {onPageSize ? (
-          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-            <span>Per page</span>
-            <select
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
+        {onPageSize && (
+          <FormControl size="small" variant="outlined">
+            <InputLabel id="page-size-label" sx={{ fontSize: '0.8125rem' }}>Per page</InputLabel>
+            <Select
+              labelId="page-size-label"
+              label="Per page"
               value={pageSize}
               onChange={(e) => onPageSize(Number(e.target.value) || 10)}
-              className="rounded border border-gray-300 bg-white px-3 py-1.5 dark:border-gray-700 dark:bg-gray-900"
+              sx={{ fontSize: '0.8125rem', minWidth: 90 }}
             >
-              {PAGE_SIZE_OPTIONS.map((option) => (
-                <option key={option} value={option}>{option}</option>
+              {PAGE_SIZE_OPTIONS.map((opt) => (
+                <MenuItem key={opt} value={opt} sx={{ fontSize: '0.8125rem' }}>{opt}</MenuItem>
               ))}
-            </select>
-          </label>
-        ) : null}
+            </Select>
+          </FormControl>
+        )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={onPrev}
-            disabled={disablePrev}
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-gray-700"
-          >
-            Prev
-          </button>
-          {pageNumbers.map((pageNumber) => (
-            <button
-              key={pageNumber}
-              type="button"
-              onClick={() => onPageChange?.(pageNumber)}
-              className={`rounded px-3 py-1.5 text-sm ${pageNumber === page ? 'bg-gray-900 text-white dark:bg-gray-700' : 'border border-gray-300 dark:border-gray-700'}`}
+        {hasKnownTotal ? (
+          <Pagination
+            count={safeTotalPages}
+            page={page}
+            onChange={(_, p) => onPageChange?.(p)}
+            shape="rounded"
+            size="small"
+            color="primary"
+            siblingCount={1}
+            boundaryCount={1}
+          />
+        ) : (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box
+              component="button"
+              onClick={onPrev}
+              disabled={page <= 1}
+              sx={{
+                px: 2,
+                py: 0.75,
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'transparent',
+                color: 'text.primary',
+                fontSize: '0.8125rem',
+                cursor: page <= 1 ? 'default' : 'pointer',
+                opacity: page <= 1 ? 0.5 : 1,
+                fontFamily: 'inherit',
+              }}
             >
-              {pageNumber}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={onNext}
-            disabled={disableNext}
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-gray-700"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-    </div>
+              Prev
+            </Box>
+            <Box
+              component="button"
+              onClick={onNext}
+              disabled={!canNext}
+              sx={{
+                px: 2,
+                py: 0.75,
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'transparent',
+                color: 'text.primary',
+                fontSize: '0.8125rem',
+                cursor: !canNext ? 'default' : 'pointer',
+                opacity: !canNext ? 0.5 : 1,
+                fontFamily: 'inherit',
+              }}
+            >
+              Next
+            </Box>
+          </Box>
+        )}
+      </Box>
+    </Box>
   )
 }

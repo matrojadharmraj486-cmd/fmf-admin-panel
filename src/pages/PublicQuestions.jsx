@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getPublicQuestions, getQuestionYears, getQuestionParts, getQuestionPapers } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
+import {
+  Box, Card, CardContent, Typography, Alert,
+  FormControl, InputLabel, Select, MenuItem, Paper
+} from '@mui/material'
 
 export default function PublicQuestions() {
   const [list, setList] = useState([])
@@ -164,97 +168,147 @@ export default function PublicQuestions() {
 
   const renderAnswerList = (arr) => {
     if (!Array.isArray(arr) || arr.length === 0) return null
-    if (arr.length === 1) return <div>{arr[0]}</div>
+    if (arr.length === 1) return <Typography variant="body2">{arr[0]}</Typography>
     return (
-      <ul className="list-disc ml-5">
-        {arr.map((a, idx) => <li key={idx}>{a}</li>)}
-      </ul>
+      <Box component="ul" sx={{ pl: 3, mt: 0, mb: 0 }}>
+        {arr.map((a, idx) => (
+          <Typography component="li" variant="body2" key={idx}>{a}</Typography>
+        ))}
+      </Box>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Public Questions</h2>
-      <div className="flex items-center gap-3 flex-wrap">
-        <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={year} onChange={(e) => setYear(e.target.value)}>
-          <option value="">Filter Year</option>
-          {years.map((y) => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
-        <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={part} onChange={(e) => setPart(e.target.value)}>
-          <option value="">Filter Part</option>
-          {parts.map((p) => (
-            <option key={p.value} value={p.value}>{p.label}</option>
-          ))}
-        </select>
-        <select
-          className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
-          value={paper}
-          onChange={(e) => setPaper(e.target.value)}
-          disabled={!part}
-        >
-          <option value="">{part ? 'Filter Paper' : 'Select part first'}</option>
-          {papers.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-      </div>
-      {error && <div className="text-red-600 text-sm">{error}</div>}
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
+        <Typography variant="h5" fontWeight={600}>Public Questions</Typography>
+      </Box>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+        <FormControl size="small" sx={{ minWidth: 140 }}>
+          <InputLabel>Filter Year</InputLabel>
+          <Select
+            value={year}
+            label="Filter Year"
+            onChange={(e) => setYear(e.target.value)}
+          >
+            <MenuItem value=""><em>Filter Year</em></MenuItem>
+            {years.map((y) => (
+              <MenuItem key={y} value={y}>{y}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 140 }}>
+          <InputLabel>Filter Part</InputLabel>
+          <Select
+            value={part}
+            label="Filter Part"
+            onChange={(e) => setPart(e.target.value)}
+          >
+            <MenuItem value=""><em>Filter Part</em></MenuItem>
+            {parts.map((p) => (
+              <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 160 }} disabled={!part}>
+          <InputLabel>{part ? 'Filter Paper' : 'Select part first'}</InputLabel>
+          <Select
+            value={paper}
+            label={part ? 'Filter Paper' : 'Select part first'}
+            onChange={(e) => setPaper(e.target.value)}
+          >
+            <MenuItem value=""><em>{part ? 'Filter Paper' : 'Select part first'}</em></MenuItem>
+            {papers.map((p) => (
+              <MenuItem key={p} value={p}>{p}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      {error && <Alert severity="error">{error}</Alert>}
+
       {loading ? <Loader /> : (
-        <div className="space-y-4">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {filtered.map((parent) => (
-            <div key={parent.id} className="rounded bg-white dark:bg-gray-800 shadow p-4 space-y-3">
-              <div>
-                <div className="font-medium">
-                  {parent.questionId && <span className="mr-2 text-indigo-700 dark:text-indigo-300">{parent.questionId}.</span>}
-                  {parent.question_text}
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">{parent.year} • {String(parent.part).toUpperCase?.() || parent.part}</div>
-              </div>
-              {parent.isDirect && (parent.answerType === 'image' ? Boolean(parent.answerImage) : Array.isArray(parent.answer) && parent.answer.length > 0) && (
-                <div className="rounded border border-gray-200 dark:border-gray-700 p-3">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Main Answer | {parent.answerType || 'text'}</div>
-                  <div className="mt-2">
-                    {parent.answerType === 'text' && renderAnswerList(parent.answer)}
-                    {parent.answerType === 'image' && parent.answerImage && (
-                      <img src={parent.answerImage} alt="answer" className="mt-2 max-h-40 object-contain" />
+            <Card key={parent.id}>
+              <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box>
+                  <Typography fontWeight={500}>
+                    {parent.questionId && (
+                      <Typography component="span" color="primary" sx={{ mr: 1 }}>
+                        {parent.questionId}.
+                      </Typography>
                     )}
-                  </div>
-                </div>
-              )}
-              {!parent.isDirect && Array.isArray(parent.main_question_answer) && parent.main_question_answer.length > 0 && (
-                <div className="rounded border border-gray-200 dark:border-gray-700 p-3">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Main Question Answer</div>
-                  <div className="mt-2">
-                    {renderAnswerList(parent.main_question_answer)}
-                  </div>
-                </div>
-              )}
-              <div className="space-y-2">
-                {(parent.sub_questions || []).map((sub) => (
-                  <div key={sub.id} className="rounded border border-gray-200 dark:border-gray-700 p-3">
-                    <div className="font-medium">{sub.text}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{String(sub.part).toUpperCase?.() || sub.part} • {sub.answerType}</div>
-                    <div className="mt-2">
-                      {sub.answerType === 'text' && Array.isArray(sub.answer) && (
-                        <ul className="list-disc ml-5">
-                          {sub.answer.map((a, idx) => <li key={idx}>{a}</li>)}
-                        </ul>
+                    {parent.question_text}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {parent.year} &bull; {String(parent.part).toUpperCase?.() || parent.part}
+                  </Typography>
+                </Box>
+
+                {parent.isDirect && (parent.answerType === 'image' ? Boolean(parent.answerImage) : Array.isArray(parent.answer) && parent.answer.length > 0) && (
+                  <Paper variant="outlined" sx={{ p: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Main Answer | {parent.answerType || 'text'}
+                    </Typography>
+                    <Box sx={{ mt: 1 }}>
+                      {parent.answerType === 'text' && renderAnswerList(parent.answer)}
+                      {parent.answerType === 'image' && parent.answerImage && (
+                        <Box
+                          component="img"
+                          src={parent.answerImage}
+                          alt="answer"
+                          sx={{ mt: 1, maxHeight: 160, objectFit: 'contain', display: 'block' }}
+                        />
                       )}
-                      {sub.answerType === 'image' && sub.answerImage && (
-                        <img src={sub.answerImage} alt="answer" className="mt-2 max-h-40 object-contain" />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                    </Box>
+                  </Paper>
+                )}
+
+                {!parent.isDirect && Array.isArray(parent.main_question_answer) && parent.main_question_answer.length > 0 && (
+                  <Paper variant="outlined" sx={{ p: 2 }}>
+                    <Typography variant="body2" color="text.secondary">Main Question Answer</Typography>
+                    <Box sx={{ mt: 1 }}>
+                      {renderAnswerList(parent.main_question_answer)}
+                    </Box>
+                  </Paper>
+                )}
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {(parent.sub_questions || []).map((sub) => (
+                    <Paper key={sub.id} variant="outlined" sx={{ p: 2 }}>
+                      <Typography fontWeight={500}>{sub.text}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        {String(sub.part).toUpperCase?.() || sub.part} &bull; {sub.answerType}
+                      </Typography>
+                      <Box sx={{ mt: 1 }}>
+                        {sub.answerType === 'text' && Array.isArray(sub.answer) && (
+                          <Box component="ul" sx={{ pl: 3, mt: 0, mb: 0 }}>
+                            {sub.answer.map((a, idx) => (
+                              <Typography component="li" variant="body2" key={idx}>{a}</Typography>
+                            ))}
+                          </Box>
+                        )}
+                        {sub.answerType === 'image' && sub.answerImage && (
+                          <Box
+                            component="img"
+                            src={sub.answerImage}
+                            alt="answer"
+                            sx={{ mt: 1, maxHeight: 160, objectFit: 'contain', display: 'block' }}
+                          />
+                        )}
+                      </Box>
+                    </Paper>
+                  ))}
+                </Box>
+              </CardContent>
+            </Card>
           ))}
-        </div>
+        </Box>
       )}
-    </div>
+    </Box>
   )
 }
-
-

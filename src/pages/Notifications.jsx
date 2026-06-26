@@ -1,6 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { listUsers, sendBulkNotification } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Alert,
+  TextField,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
+  Checkbox,
+  Paper
+} from '@mui/material'
+import { Icon } from '@iconify/react'
 
 const emptyForm = {
   title: '',
@@ -139,184 +162,209 @@ export default function Notifications() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Notifications</h2>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+        <Typography variant="h5" fontWeight={600}>Notifications</Typography>
+        <Typography variant="body2" color="text.secondary">
           {mode === 'all' ? 'All users' : `${selectedIds.size} selected`}
-        </div>
-      </div>
+        </Typography>
+      </Box>
 
-      <div className="rounded-xl bg-white p-4 shadow dark:bg-gray-800">
-        <div className="mb-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setMode('selected')}
-            className={`rounded px-4 py-2 text-sm ${mode === 'selected' ? 'bg-gray-900 text-white dark:bg-gray-700' : 'border border-gray-300 dark:border-gray-700'}`}
-          >
-            Send to Selected Users
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('all')}
-            className={`rounded px-4 py-2 text-sm ${mode === 'all' ? 'bg-gray-900 text-white dark:bg-gray-700' : 'border border-gray-300 dark:border-gray-700'}`}
-          >
-            Send to All Users
-          </button>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <input
-            value={form.title}
-            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            placeholder="Notification title"
-            className="rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          />
-          <textarea
-            value={form.dataText}
-            onChange={(e) => setForm((prev) => ({ ...prev, dataText: e.target.value }))}
-            placeholder='Data JSON, example: {"screen":"home"}'
-            rows={1}
-            className="rounded border border-gray-300 bg-white px-3 py-2 font-mono text-sm dark:border-gray-700 dark:bg-gray-900"
-          />
-          <textarea
-            value={form.body}
-            onChange={(e) => setForm((prev) => ({ ...prev, body: e.target.value }))}
-            placeholder="Notification body"
-            rows={4}
-            className="md:col-span-2 rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          />
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => setForm({ ...emptyForm })}
-            disabled={sending}
-            className="rounded border border-gray-300 px-4 py-2 dark:border-gray-700"
-          >
-            Clear
-          </button>
-          <button
-            type="button"
-            onClick={() => submit(false)}
-            disabled={sending}
-            className="rounded bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 disabled:opacity-60"
-          >
-            {sending ? 'Sending...' : mode === 'all' ? 'Send to All' : 'Send to Selected'}
-          </button>
-        </div>
-      </div>
-
-      {error && <div className="text-sm text-red-600">{error}</div>}
-      {ok && <div className="text-sm text-green-600">{ok}</div>}
-
-      {mode === 'selected' && (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3 rounded-xl bg-white p-4 shadow dark:bg-gray-800">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search users by name, email or mobile"
-              className="min-w-[260px] flex-1 rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-            />
-            <button
-              type="button"
-              onClick={() => setSelectedIds(new Set())}
-              disabled={selectedIds.size === 0}
-              className="rounded border border-gray-300 px-4 py-2 disabled:opacity-50 dark:border-gray-700"
+      {/* Compose Card */}
+      <Card>
+        <CardContent>
+          {/* Mode Toggle */}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+            <Button
+              variant={mode === 'selected' ? 'contained' : 'outlined'}
+              onClick={() => setMode('selected')}
+              sx={mode === 'selected' ? { bgcolor: '#666CFF', '&:hover': { bgcolor: '#5558e3' } } : {}}
             >
-              Clear Selection
-            </button>
-          </div>
+              Send to Selected Users
+            </Button>
+            <Button
+              variant={mode === 'all' ? 'contained' : 'outlined'}
+              onClick={() => setMode('all')}
+              sx={mode === 'all' ? { bgcolor: '#666CFF', '&:hover': { bgcolor: '#5558e3' } } : {}}
+            >
+              Send to All Users
+            </Button>
+          </Box>
 
+          {/* Form Fields */}
+          <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
+            <TextField
+              label="Notification title"
+              value={form.title}
+              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+              fullWidth
+              size="small"
+            />
+            <TextField
+              label='Data JSON, e.g. {"screen":"home"}'
+              value={form.dataText}
+              onChange={(e) => setForm((prev) => ({ ...prev, dataText: e.target.value }))}
+              fullWidth
+              size="small"
+              inputProps={{ style: { fontFamily: 'monospace' } }}
+            />
+            <TextField
+              label="Notification body"
+              value={form.body}
+              onChange={(e) => setForm((prev) => ({ ...prev, body: e.target.value }))}
+              fullWidth
+              multiline
+              rows={4}
+              size="small"
+              sx={{ gridColumn: { md: 'span 2' } }}
+            />
+          </Box>
+
+          {/* Actions */}
+          <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setForm({ ...emptyForm })}
+              disabled={sending}
+            >
+              Clear
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => submit(false)}
+              disabled={sending}
+              startIcon={sending ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:send" />}
+              sx={{ bgcolor: '#666CFF', '&:hover': { bgcolor: '#5558e3' } }}
+            >
+              {sending ? 'Sending...' : mode === 'all' ? 'Send to All' : 'Send to Selected'}
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Alerts */}
+      {error && (
+        <Alert severity="error" onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+      {ok && (
+        <Alert severity="success" onClose={() => setOk('')}>
+          {ok}
+        </Alert>
+      )}
+
+      {/* User Selection Panel */}
+      {mode === 'selected' && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Search + Clear */}
+          <Card>
+            <CardContent sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
+              <TextField
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search users by name, email or mobile"
+                size="small"
+                sx={{ minWidth: 260, flex: 1 }}
+                InputProps={{
+                  startAdornment: <Icon icon="mdi:magnify" style={{ marginRight: 6, color: '#888' }} />
+                }}
+              />
+              <Button
+                variant="outlined"
+                onClick={() => setSelectedIds(new Set())}
+                disabled={selectedIds.size === 0}
+              >
+                Clear Selection
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Users Table */}
           {loadingUsers ? (
             <Loader />
           ) : users.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-              No users found.
-            </div>
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 6 }}>
+                <Typography color="text.secondary">No users found.</Typography>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <Th>
-                      <input
-                        ref={selectAllRef}
-                        type="checkbox"
-                        checked={allVisibleSelected}
-                        onChange={toggleAllVisible}
-                      />
-                    </Th>
-                    <Th>Name</Th>
-                    <Th>Email</Th>
-                    <Th>Mobile</Th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {users.map((user) => {
-                    const id = getUserId(user)
-                    return (
-                      <tr key={id || getUserEmail(user)} className="bg-white dark:bg-gray-800">
-                        <Td>
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(id)}
-                            onChange={() => toggleUser(id)}
-                          />
-                        </Td>
-                        <Td>{getUserName(user)}</Td>
-                        <Td>{getUserEmail(user)}</Td>
-                        <Td>{getUserMobile(user)}</Td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <Card>
+              <TableContainer component={Paper} elevation={0}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: 'action.hover' }}>
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          inputRef={selectAllRef}
+                          checked={allVisibleSelected}
+                          indeterminate={someVisibleSelected}
+                          onChange={toggleAllVisible}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell><Typography variant="body2" fontWeight={600}>Name</Typography></TableCell>
+                      <TableCell><Typography variant="body2" fontWeight={600}>Email</Typography></TableCell>
+                      <TableCell><Typography variant="body2" fontWeight={600}>Mobile</Typography></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {users.map((user) => {
+                      const id = getUserId(user)
+                      return (
+                        <TableRow key={id || getUserEmail(user)} hover>
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              checked={selectedIds.has(id)}
+                              onChange={() => toggleUser(id)}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>{getUserName(user)}</TableCell>
+                          <TableCell>{getUserEmail(user)}</TableCell>
+                          <TableCell>{getUserMobile(user)}</TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Card>
           )}
-        </div>
+        </Box>
       )}
 
-      {confirmAllOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md space-y-4 rounded-xl bg-white p-5 shadow dark:bg-gray-800">
-            <div className="text-lg font-semibold">Send to All Users</div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              This notification will be sent to every user with a valid device token.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmAllOpen(false)}
-                disabled={sending}
-                className="rounded border border-gray-300 px-4 py-2 dark:border-gray-700"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => submit(true)}
-                disabled={sending}
-                className="rounded bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 disabled:opacity-60"
-              >
-                {sending ? 'Sending...' : 'Yes, Send'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      {/* Confirm All Dialog */}
+      <Dialog open={confirmAllOpen} onClose={() => setConfirmAllOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Send to All Users</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            This notification will be sent to every user with a valid device token.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setConfirmAllOpen(false)}
+            disabled={sending}
+            variant="outlined"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => submit(true)}
+            disabled={sending}
+            variant="contained"
+            startIcon={sending ? <CircularProgress size={16} color="inherit" /> : null}
+            sx={{ bgcolor: '#666CFF', '&:hover': { bgcolor: '#5558e3' } }}
+          >
+            {sending ? 'Sending...' : 'Yes, Send'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   )
-}
-
-function Th({ children }) {
-  return <th className="px-4 py-3 text-left text-sm font-medium">{children}</th>
-}
-
-function Td({ children }) {
-  return <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{children || '-'}</td>
 }
 
 function toArray(value) {

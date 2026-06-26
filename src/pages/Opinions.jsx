@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { bulkDeleteOpinions, deleteOpinion, listOpinions } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
 import { GridFooter } from '../shared/GridFooter.jsx'
+import {
+  Box, Card, CardContent, Typography, Button, Alert, TextField,
+  Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Checkbox, Chip, IconButton, Tooltip
+} from '@mui/material'
+import { Icon } from '@iconify/react'
 
 export default function Opinions() {
   const [opinions, setOpinions] = useState([])
@@ -131,186 +138,200 @@ export default function Opinions() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Opinions</h2>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Page Header */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+        <Typography variant="h5" fontWeight={600}>Opinions</Typography>
+        <Typography variant="body2" color="text.secondary">
           {sorted.length} {sorted.length === 1 ? 'opinion' : 'opinions'}
-        </div>
-      </div>
+        </Typography>
+      </Box>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-xl bg-white p-4 shadow dark:bg-gray-800">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, email, mobile or opinion"
-          className="w-full rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900 md:max-w-md"
-        />
-        <button
-          onClick={openBulkConfirm}
-          disabled={selectedIds.length === 0}
-          className="rounded bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
-        >
-          Delete Selected
-        </button>
-        {selectedIds.length > 0 && (
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {selectedIds.length} selected
-          </div>
-        )}
-      </div>
+      {/* Toolbar */}
+      <Card>
+        <CardContent sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2, py: '12px !important' }}>
+          <TextField
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, email, mobile or opinion"
+            size="small"
+            sx={{ flexGrow: 1, maxWidth: { md: 420 } }}
+            InputProps={{
+              startAdornment: (
+                <Box component="span" sx={{ mr: 1, display: 'flex', color: 'text.secondary' }}>
+                  <Icon icon="mdi:magnify" width={18} />
+                </Box>
+              )
+            }}
+          />
+          <Button
+            variant="contained"
+            color="error"
+            disabled={selectedIds.length === 0}
+            onClick={openBulkConfirm}
+            startIcon={<Icon icon="mdi:delete-outline" />}
+          >
+            Delete Selected
+          </Button>
+          {selectedIds.length > 0 && (
+            <Typography variant="body2" color="text.secondary">
+              {selectedIds.length} selected
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
 
-      {error && <div className="text-sm text-red-600">{error}</div>}
-      {ok && <div className="text-sm text-green-600">{ok}</div>}
+      {/* Alerts */}
+      {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
+      {ok && <Alert severity="success" onClose={() => setOk('')}>{ok}</Alert>}
 
+      {/* Content */}
       {loading ? (
         <Loader />
       ) : sorted.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-          No opinions found.
-        </div>
+        <Card>
+          <CardContent sx={{ py: 6, textAlign: 'center' }}>
+            <Icon icon="mdi:comment-outline" width={48} style={{ color: '#9e9e9e', marginBottom: 8 }} />
+            <Typography color="text.secondary">No opinions found.</Typography>
+          </CardContent>
+        </Card>
       ) : (
         <>
-          <div className="hidden overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 lg:block">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <HeaderCell>
-                    <input
-                      type="checkbox"
-                      checked={allPageSelected}
-                      ref={(el) => {
-                        if (!el) return
-                        el.indeterminate = somePageSelected
-                      }}
-                      onChange={(e) => toggleSelectAllPage(e.target.checked)}
-                    />
-                  </HeaderCell>
-                  <HeaderCell>Name</HeaderCell>
-                  <HeaderCell>Email</HeaderCell>
-                  <HeaderCell>Mobile</HeaderCell>
-                  <HeaderCell>Opinion</HeaderCell>
-                  <HeaderCell>Created At</HeaderCell>
-                  <HeaderCell>Actions</HeaderCell>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {currentItems.map((item) => (
-                  <tr key={getId(item)} className="bg-white dark:bg-gray-800">
-                    <BodyCell>
-                      <input
-                        type="checkbox"
+          <Card>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={allPageSelected}
+                        indeterminate={somePageSelected}
+                        onChange={(e) => toggleSelectAllPage(e.target.checked)}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Mobile</TableCell>
+                    <TableCell>Opinion</TableCell>
+                    <TableCell>Created At</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {currentItems.map((item) => (
+                    <TableRow key={getId(item)} hover>
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          size="small"
+                          checked={isSelected(getId(item))}
+                          onChange={(e) => toggleSelected(getId(item), e.target.checked)}
+                        />
+                      </TableCell>
+                      <TableCell>{getName(item) || '-'}</TableCell>
+                      <TableCell>{getEmail(item) || '-'}</TableCell>
+                      <TableCell>{getMobile(item) || '-'}</TableCell>
+                      <TableCell sx={{ maxWidth: 280 }}>
+                        <Typography variant="body2" noWrap title={getOpinion(item)}>
+                          {getOpinion(item) || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(getCreatedAtRaw(item))}</TableCell>
+                      <TableCell>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => onDeleteRow(getId(item))}
+                          >
+                            <Icon icon="mdi:delete-outline" width={18} />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <GridFooter
+              page={safePage}
+              totalPages={totalPages}
+              onPrev={() => setPage((p) => Math.max(1, p - 1))}
+              onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onPageChange={(p) => setPage(p)}
+              pageSize={pageSize}
+              onPageSize={(n) => setPageSize(n)}
+              totalItems={sorted.length}
+              itemLabel={sorted.length === 1 ? 'opinion' : 'opinions'}
+            />
+          </Card>
+
+          {/* Mobile cards */}
+          <Box sx={{ display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', gap: 2 }}>
+            {currentItems.map((item) => (
+              <Card key={getId(item)}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Name</Typography>
+                      <Typography fontWeight={600}>{getName(item) || '-'}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Checkbox
+                        size="small"
                         checked={isSelected(getId(item))}
                         onChange={(e) => toggleSelected(getId(item), e.target.checked)}
                       />
-                    </BodyCell>
-                    <BodyCell>{getName(item)}</BodyCell>
-                    <BodyCell>{getEmail(item)}</BodyCell>
-                    <BodyCell>{getMobile(item)}</BodyCell>
-                    <BodyCell>{getOpinion(item)}</BodyCell>
-                    <BodyCell>{formatDate(getCreatedAtRaw(item))}</BodyCell>
-                    <BodyCell>
-                      <button
-                        onClick={() => onDeleteRow(getId(item))}
-                        className="rounded bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
-                      >
-                        Delete
-                      </button>
-                    </BodyCell>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="grid gap-3 lg:hidden">
-            {currentItems.map((item) => (
-              <div key={getId(item)} className="rounded-xl bg-white p-4 shadow dark:bg-gray-800">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-2">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Name</div>
-                    <div className="font-semibold">{getName(item)}</div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={isSelected(getId(item))}
-                      onChange={(e) => toggleSelected(getId(item), e.target.checked)}
-                    />
-                    <button
-                      onClick={() => onDeleteRow(getId(item))}
-                      className="rounded bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-3 space-y-2">
-                  <div className="grid gap-2 text-sm text-gray-600 dark:text-gray-300 sm:grid-cols-2">
-                    <MobileMeta label="Email" value={getEmail(item)} />
-                    <MobileMeta label="Mobile" value={getMobile(item)} />
-                  </div>
-                </div>
-                <div className="mt-3 space-y-2">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Opinion</div>
-                  <div className="text-sm text-gray-700 dark:text-gray-200">{getOpinion(item)}</div>
-                </div>
-                <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                  Created {formatDate(getCreatedAtRaw(item))}
-                </div>
-              </div>
+                      <Tooltip title="Delete">
+                        <IconButton size="small" color="error" onClick={() => onDeleteRow(getId(item))}>
+                          <Icon icon="mdi:delete-outline" width={18} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 2 }}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</Typography>
+                      <Typography variant="body2">{getEmail(item) || '-'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mobile</Typography>
+                      <Typography variant="body2">{getMobile(item) || '-'}</Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="caption" color="text.secondary">Opinion</Typography>
+                    <Typography variant="body2">{getOpinion(item) || '-'}</Typography>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Created {formatDate(getCreatedAtRaw(item))}
+                  </Typography>
+                </CardContent>
+              </Card>
             ))}
-          </div>
-
-          <GridFooter
-            page={safePage}
-            totalPages={totalPages}
-            onPrev={() => setPage((p) => Math.max(1, p - 1))}
-            onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
-            onPageChange={(p) => setPage(p)}
-            pageSize={pageSize}
-            onPageSize={(n) => setPageSize(n)}
-            totalItems={sorted.length}
-            itemLabel={sorted.length === 1 ? 'opinion' : 'opinions'}
-          />
+          </Box>
         </>
       )}
 
-      {bulkConfirm.open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-md p-5 space-y-4">
-            <div className="font-semibold text-lg">Confirm Delete</div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Delete {selectedIds.length} selected {selectedIds.length === 1 ? 'opinion' : 'opinions'}?
-            </p>
-            <p className="text-sm text-red-600">This action cannot be undone.</p>
-            <div className="flex gap-2 justify-end">
-              <button onClick={closeBulkConfirm} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
-              <button onClick={confirmBulkDelete} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">
-                Yes, Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function HeaderCell({ children }) {
-  return <th className="px-4 py-3 text-left text-sm font-medium">{children}</th>
-}
-
-function BodyCell({ children }) {
-  return <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{children || '-'}</td>
-}
-
-function MobileMeta({ label, value }) {
-  return (
-    <div>
-      <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</div>
-      <div>{value || '-'}</div>
-    </div>
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog open={bulkConfirm.open} onClose={closeBulkConfirm} maxWidth="xs" fullWidth>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Delete {selectedIds.length} selected {selectedIds.length === 1 ? 'opinion' : 'opinions'}?
+          </Typography>
+          <Typography variant="body2" color="error.main">
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeBulkConfirm} variant="outlined">Cancel</Button>
+          <Button onClick={confirmBulkDelete} variant="contained" color="error">
+            Yes, Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   )
 }
 

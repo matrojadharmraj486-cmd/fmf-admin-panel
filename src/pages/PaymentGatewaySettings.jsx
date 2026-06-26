@@ -1,6 +1,33 @@
 import { useEffect, useState } from 'react'
 import { getPaymentGatewaySettings, updatePaymentGatewaySettings } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Alert,
+  TextField,
+  Table,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  Grid,
+  CircularProgress,
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Switch,
+  FormControlLabel,
+  Divider,
+  Snackbar,
+  Paper
+} from '@mui/material'
+import { Icon } from '@iconify/react'
 
 export default function PaymentGatewaySettings() {
   const [loading, setLoading] = useState(true)
@@ -153,159 +180,229 @@ export default function PaymentGatewaySettings() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Payment Gateway Settings</h2>
-        <button
-          type="button"
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+        <Typography variant="h5" fontWeight={600}>Payment Gateway Settings</Typography>
+        <Button
+          variant="outlined"
           onClick={fetchSettings}
-          className="px-3 py-2 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+          startIcon={<Icon icon="mdi:refresh" />}
+          size="small"
         >
           Refresh
-        </button>
-      </div>
+        </Button>
+      </Box>
 
-      {error && <div className="text-red-600 text-sm">{error}</div>}
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" onClose={() => setError('')}>{error}</Alert>
+      )}
 
       {loading ? (
         <Loader />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2 items-start">
-          <form onSubmit={onSave} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4">
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-sm text-gray-600 dark:text-gray-300">Payment Gateway</label>
-                <select
-                  value={form.gateway}
-                  onChange={(e) => setForm((s) => ({ ...s, gateway: e.target.value }))}
-                  className="w-full rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-                  disabled
-                >
-                  <option value="razorpay">razorpay</option>
-                </select>
-                <div className="text-xs text-gray-500">Only Razorpay is supported for now.</div>
-              </div>
+        <Grid container spacing={3} alignItems="flex-start">
+          {/* Settings Form */}
+          <Grid item xs={12} lg={6}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                  Configuration
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                <Box component="form" onSubmit={onSave} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                  <Grid container spacing={2}>
+                    {/* Gateway */}
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth size="small" disabled>
+                        <InputLabel>Payment Gateway</InputLabel>
+                        <Select
+                          value={form.gateway}
+                          label="Payment Gateway"
+                          onChange={(e) => setForm((s) => ({ ...s, gateway: e.target.value }))}
+                        >
+                          <MenuItem value="razorpay">razorpay</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                        Only Razorpay is supported for now.
+                      </Typography>
+                    </Grid>
 
-              <div className="space-y-1">
-                <label className="text-sm text-gray-600 dark:text-gray-300">Key</label>
-                <input
-                  type="text"
-                  value={form.key}
-                  onChange={(e) => setForm((s) => ({ ...s, key: e.target.value }))}
-                  className="w-full rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-                  placeholder="Key"
-                  required
-                />
-              </div>
+                    {/* Key */}
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Key"
+                        value={form.key}
+                        onChange={(e) => setForm((s) => ({ ...s, key: e.target.value }))}
+                        fullWidth
+                        size="small"
+                        placeholder="Key"
+                        required
+                      />
+                    </Grid>
 
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-sm text-gray-600 dark:text-gray-300">Description</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
-                  className="w-full rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2 min-h-[90px]"
-                  placeholder="e.g. Razorpay live keys for production"
-                />
-              </div>
+                    {/* Description */}
+                    <Grid item xs={12}>
+                      <TextField
+                        label="Description"
+                        value={form.description}
+                        onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
+                        fullWidth
+                        size="small"
+                        multiline
+                        minRows={3}
+                        placeholder="e.g. Razorpay live keys for production"
+                      />
+                    </Grid>
 
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-sm text-gray-600 dark:text-gray-300">Secret</label>
-                <div className="text-xs text-gray-500">Secret is never shown. Paste a new secret only if you want to rotate it.</div>
-                <input
-                  type="password"
-                  value={form.secret}
-                  onChange={(e) => setForm((s) => ({ ...s, secret: e.target.value }))}
-                  className="w-full rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-                  placeholder={saved.secretMasked ? saved.secretMasked : 'Enter secret'}
-                  autoComplete="new-password"
-                />
-              </div>
-            </div>
+                    {/* Secret */}
+                    <Grid item xs={12}>
+                      <TextField
+                        label="Secret"
+                        type="password"
+                        value={form.secret}
+                        onChange={(e) => setForm((s) => ({ ...s, secret: e.target.value }))}
+                        fullWidth
+                        size="small"
+                        placeholder={saved.secretMasked ? saved.secretMasked : 'Enter secret'}
+                        autoComplete="new-password"
+                        helperText="Secret is never shown. Paste a new secret only if you want to rotate it."
+                      />
+                    </Grid>
+                  </Grid>
 
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={!!form.isActive}
-                onChange={(e) => setForm((s) => ({ ...s, isActive: e.target.checked }))}
-              />
-              Active
-            </label>
+                  {/* Active Toggle */}
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={!!form.isActive}
+                        onChange={(e) => setForm((s) => ({ ...s, isActive: e.target.checked }))}
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': { color: '#666CFF' },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#666CFF' }
+                        }}
+                      />
+                    }
+                    label="Active"
+                  />
 
-            <div className="flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                disabled={saving}
-                onClick={resetFormToSaved}
-                className="px-4 py-2 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm disabled:opacity-60"
-              >
-                Revert
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60"
-              >
-                {saving ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          </form>
+                  {/* Actions */}
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 1 }}>
+                    <Button
+                      type="button"
+                      variant="outlined"
+                      disabled={saving}
+                      onClick={resetFormToSaved}
+                      startIcon={<Icon icon="mdi:restore" />}
+                    >
+                      Revert
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={saving}
+                      startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:content-save-outline" />}
+                      sx={{ bgcolor: '#666CFF', '&:hover': { bgcolor: '#5558e3' } }}
+                    >
+                      {saving ? 'Saving...' : 'Save'}
+                    </Button>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="font-semibold">Saved Details</div>
-              <div className="text-xs text-gray-500">
-                {saved.updatedAt ? `Updated: ${String(saved.updatedAt)}` : ''}
-              </div>
-            </div>
-
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-sm">
-                <tbody className="[&>tr>td]:py-2 [&>tr>td]:align-top">
-                  <tr className="border-b border-gray-100 dark:border-gray-700">
-                    <td className="text-gray-600 dark:text-gray-300 w-40">Gateway</td>
-                    <td className="font-medium">{saved.gateway || '-'}</td>
-                  </tr>
-                  <tr className="border-b border-gray-100 dark:border-gray-700">
-                    <td className="text-gray-600 dark:text-gray-300">Configured</td>
-                    <td className="font-medium">{saved.isConfigured ? 'Yes' : 'No'}</td>
-                  </tr>
-                  <tr className="border-b border-gray-100 dark:border-gray-700">
-                    <td className="text-gray-600 dark:text-gray-300">Key</td>
-                    <td className="font-medium break-all">{saved.key || '-'}</td>
-                  </tr>
-                  <tr className="border-b border-gray-100 dark:border-gray-700">
-                    <td className="text-gray-600 dark:text-gray-300">Secret</td>
-                    <td className="font-medium">{saved.secretMasked || '-'}</td>
-                  </tr>
-                  <tr className="border-b border-gray-100 dark:border-gray-700">
-                    <td className="text-gray-600 dark:text-gray-300">Description</td>
-                    <td className="font-medium whitespace-pre-wrap">{saved.description || '-'}</td>
-                  </tr>
-                  <tr>
-                    <td className="text-gray-600 dark:text-gray-300">Active</td>
-                    <td>
-                      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${saved.isActive ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' : 'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-200'}`}>
-                        {saved.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+          {/* Saved Details */}
+          <Grid item xs={12} lg={6}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+                  <Typography variant="subtitle1" fontWeight={600}>Saved Details</Typography>
+                  {saved.updatedAt && (
+                    <Typography variant="caption" color="text.secondary">
+                      Updated: {String(saved.updatedAt)}
+                    </Typography>
+                  )}
+                </Box>
+                <Divider sx={{ mb: 2 }} />
+                <TableContainer component={Paper} elevation={0}>
+                  <Table size="small">
+                    <TableBody>
+                      <TableRow>
+                        <TableCell sx={{ color: 'text.secondary', width: 140, borderBottom: '1px solid', borderColor: 'divider' }}>
+                          Gateway
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 500, borderBottom: '1px solid', borderColor: 'divider' }}>
+                          {saved.gateway || '-'}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell sx={{ color: 'text.secondary', borderBottom: '1px solid', borderColor: 'divider' }}>
+                          Configured
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 500, borderBottom: '1px solid', borderColor: 'divider' }}>
+                          {saved.isConfigured ? 'Yes' : 'No'}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell sx={{ color: 'text.secondary', borderBottom: '1px solid', borderColor: 'divider' }}>
+                          Key
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 500, wordBreak: 'break-all', borderBottom: '1px solid', borderColor: 'divider' }}>
+                          {saved.key || '-'}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell sx={{ color: 'text.secondary', borderBottom: '1px solid', borderColor: 'divider' }}>
+                          Secret
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 500, borderBottom: '1px solid', borderColor: 'divider' }}>
+                          {saved.secretMasked || '-'}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell sx={{ color: 'text.secondary', borderBottom: '1px solid', borderColor: 'divider' }}>
+                          Description
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 500, whiteSpace: 'pre-wrap', borderBottom: '1px solid', borderColor: 'divider' }}>
+                          {saved.description || '-'}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell sx={{ color: 'text.secondary' }}>Active</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={saved.isActive ? 'Active' : 'Inactive'}
+                            color={saved.isActive ? 'success' : 'default'}
+                            size="small"
+                            sx={{ fontWeight: 600 }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       )}
 
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className={`px-4 py-2 rounded shadow text-white ${t.type === 'error' ? 'bg-red-600' : 'bg-emerald-600'}`}
-          >
+      {/* Toast Notifications */}
+      {toasts.map((t) => (
+        <Snackbar
+          key={t.id}
+          open
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          sx={{ mt: toasts.indexOf(t) * 8 }}
+        >
+          <Alert severity={t.type === 'error' ? 'error' : 'success'} variant="filled" sx={{ width: '100%' }}>
             {t.message}
-          </div>
-        ))}
-      </div>
-    </div>
+          </Alert>
+        </Snackbar>
+      ))}
+    </Box>
   )
 }

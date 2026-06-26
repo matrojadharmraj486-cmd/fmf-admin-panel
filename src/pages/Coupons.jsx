@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createCoupon, deleteCoupon, listCoupons } from '../services/api.js'
 import { Loader } from '../shared/Loader.jsx'
+import {
+  Box, Card, CardContent, Typography, Button, Alert, TextField,
+  Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
+  Dialog, DialogTitle, DialogContent, DialogActions, Grid,
+  CircularProgress, Chip, FormControl, InputLabel, Select, MenuItem,
+  Switch, FormControlLabel
+} from '@mui/material'
+import { Icon } from '@iconify/react'
 
 const DISCOUNT_TYPES = [
   { value: 'percentage', label: 'Flat Discount in Percentage' },
@@ -105,170 +113,233 @@ export default function Coupons() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Coupons System</h2>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Page Header */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+        <Typography variant="h5" fontWeight={600}>Coupons System</Typography>
+        <Typography variant="body2" color="text.secondary">
           {rows.length} {rows.length === 1 ? 'coupon' : 'coupons'}
-        </div>
-      </div>
+        </Typography>
+      </Box>
 
-      <form onSubmit={submit} className="rounded-xl bg-white p-4 shadow dark:bg-gray-800">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <input
-            type="text"
-            value={form.code}
-            onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
-            placeholder="Coupon code name"
-            className="rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          />
+      {/* Create Coupon Form */}
+      <Card>
+        <CardContent>
+          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+            Create New Coupon
+          </Typography>
+          <Box component="form" onSubmit={submit}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} xl={2.4}>
+                <TextField
+                  label="Coupon Code"
+                  value={form.code}
+                  onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                  placeholder="Coupon code name"
+                  size="small"
+                  fullWidth
+                />
+              </Grid>
 
-          <select
-            value={form.isActive ? 'active' : 'inactive'}
-            onChange={(e) => setForm((prev) => ({ ...prev, isActive: e.target.value === 'active' }))}
-            className="rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          >
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+              <Grid item xs={12} sm={6} xl={2.4}>
+                <FormControl size="small" fullWidth>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    label="Status"
+                    value={form.isActive ? 'active' : 'inactive'}
+                    onChange={(e) => setForm((prev) => ({ ...prev, isActive: e.target.value === 'active' }))}
+                  >
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
 
-          <select
-            value={form.discountType}
-            onChange={(e) => setForm((prev) => ({ ...prev, discountType: e.target.value, discountValue: '' }))}
-            className="rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          >
-            {DISCOUNT_TYPES.map((type) => (
-              <option key={type.value} value={type.value}>{type.label}</option>
-            ))}
-          </select>
+              <Grid item xs={12} sm={6} xl={2.4}>
+                <FormControl size="small" fullWidth>
+                  <InputLabel>Discount Type</InputLabel>
+                  <Select
+                    label="Discount Type"
+                    value={form.discountType}
+                    onChange={(e) => setForm((prev) => ({ ...prev, discountType: e.target.value, discountValue: '' }))}
+                  >
+                    {DISCOUNT_TYPES.map((type) => (
+                      <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
 
-          <input
-            type="number"
-            min="0"
-            max={form.discountType === 'percentage' ? 100 : undefined}
-            step={form.discountType === 'percentage' ? 1 : 0.01}
-            value={form.discountValue}
-            onChange={(e) => setForm((prev) => ({ ...prev, discountValue: e.target.value }))}
-            placeholder={form.discountType === 'percentage' ? 'Discount %' : 'Discount amount'}
-            className="rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          />
+              <Grid item xs={12} sm={6} xl={2.4}>
+                <TextField
+                  label={form.discountType === 'percentage' ? 'Discount %' : 'Discount Amount'}
+                  type="number"
+                  inputProps={{
+                    min: 0,
+                    max: form.discountType === 'percentage' ? 100 : undefined,
+                    step: form.discountType === 'percentage' ? 1 : 0.01
+                  }}
+                  value={form.discountValue}
+                  onChange={(e) => setForm((prev) => ({ ...prev, discountValue: e.target.value }))}
+                  size="small"
+                  fullWidth
+                />
+              </Grid>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded bg-gray-900 px-4 py-2 text-white disabled:opacity-60 dark:bg-gray-700"
-          >
-            {saving ? 'Creating...' : 'Create Code'}
-          </button>
-        </div>
+              <Grid item xs={12} sm={6} xl={2.4}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={saving}
+                  fullWidth
+                  sx={{ height: 40 }}
+                  startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Icon icon="mdi:ticket-percent-outline" />}
+                >
+                  {saving ? 'Creating...' : 'Create Code'}
+                </Button>
+              </Grid>
 
-        <textarea
-          value={form.description}
-          onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-          placeholder="Discount description"
-          rows={3}
-          className="mt-3 w-full rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-        />
-      </form>
+              <Grid item xs={12}>
+                <TextField
+                  label="Discount Description"
+                  value={form.description}
+                  onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                  placeholder="Discount description"
+                  multiline
+                  rows={3}
+                  size="small"
+                  fullWidth
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </CardContent>
+      </Card>
 
-      {error && <div className="text-sm text-red-600">{error}</div>}
-      {ok && <div className="text-sm text-green-600">{ok}</div>}
+      {/* Alerts */}
+      {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
+      {ok && <Alert severity="success" onClose={() => setOk('')}>{ok}</Alert>}
 
+      {/* Table */}
       {loading ? (
         <Loader />
       ) : rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-          No coupons found.
-        </div>
+        <Card>
+          <CardContent sx={{ py: 6, textAlign: 'center' }}>
+            <Icon icon="mdi:ticket-percent-outline" width={48} style={{ color: '#9e9e9e', marginBottom: 8 }} />
+            <Typography color="text.secondary">No coupons found.</Typography>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <HeaderCell>Coupon Code Name</HeaderCell>
-                <HeaderCell>Status</HeaderCell>
-                <HeaderCell>Type of Coupon</HeaderCell>
-                <HeaderCell>Discount</HeaderCell>
-                <HeaderCell>Code Creation</HeaderCell>
-                <HeaderCell>Discount Description</HeaderCell>
-                <HeaderCell align="right">Delete Button</HeaderCell>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {rows.map((item) => {
-                const id = getId(item)
-                return (
-                  <tr key={id || item?.code} className="bg-white dark:bg-gray-800">
-                    <BodyCell>{getCode(item)}</BodyCell>
-                    <BodyCell><StatusBadge active={getIsActive(item)} /></BodyCell>
-                    <BodyCell>{formatDiscountType(getDiscountType(item))}</BodyCell>
-                    <BodyCell>{formatDiscount(item)}</BodyCell>
-                    <BodyCell>{formatDate(getCreatedAt(item))}</BodyCell>
-                    <BodyCell>{getDescription(item)}</BodyCell>
-                    <BodyCell align="right">
-                      <button
-                        type="button"
-                        disabled={deletingId === id}
-                        onClick={() => setDeleteConfirm({ open: true, id, code: getCode(item) })}
-                        className="rounded bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700 disabled:opacity-60"
-                      >
-                        {deletingId === id ? 'Deleting...' : 'Delete'}
-                      </button>
-                    </BodyCell>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Card>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Coupon Code Name</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Type of Coupon</TableCell>
+                  <TableCell>Discount</TableCell>
+                  <TableCell>Code Creation</TableCell>
+                  <TableCell>Discount Description</TableCell>
+                  <TableCell align="right">Delete Button</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {rows.map((item) => {
+                  const id = getId(item)
+                  return (
+                    <TableRow key={id || item?.code} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600} sx={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+                          {getCode(item)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getIsActive(item) ? 'Active' : 'Inactive'}
+                          color={getIsActive(item) ? 'success' : 'default'}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>{formatDiscountType(getDiscountType(item))}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={500}>
+                          {formatDiscount(item)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(getCreatedAt(item))}</TableCell>
+                      <TableCell sx={{ maxWidth: 240 }}>
+                        <Typography variant="body2" noWrap title={getDescription(item)}>
+                          {getDescription(item)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          disabled={deletingId === id}
+                          onClick={() => setDeleteConfirm({ open: true, id, code: getCode(item) })}
+                          startIcon={
+                            deletingId === id
+                              ? <CircularProgress size={12} color="inherit" />
+                              : <Icon icon="mdi:delete-outline" width={14} />
+                          }
+                        >
+                          {deletingId === id ? 'Deleting...' : 'Delete'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
       )}
 
-      {deleteConfirm.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md space-y-4 rounded-xl bg-white p-5 shadow dark:bg-gray-800">
-            <div className="text-lg font-semibold">Confirm Delete</div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Delete coupon <span className="font-medium">{deleteConfirm.code}</span>?
-            </p>
-            <p className="text-sm text-red-600">This action cannot be undone.</p>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirm({ open: false, id: '', code: '' })}
-                disabled={Boolean(deletingId)}
-                className="rounded border border-gray-300 px-4 py-2 dark:border-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                disabled={Boolean(deletingId)}
-                className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-60"
-              >
-                {deletingId ? 'Deleting...' : 'Yes, Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function HeaderCell({ children, align }) {
-  return <th className={`px-4 py-3 text-left text-sm font-medium ${align === 'right' ? 'text-right' : ''}`}>{children}</th>
-}
-
-function BodyCell({ children, align }) {
-  return <td className={`px-4 py-3 text-sm text-gray-700 dark:text-gray-200 ${align === 'right' ? 'text-right' : ''}`}>{children || '-'}</td>
-}
-
-function StatusBadge({ active }) {
-  return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${active ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
-      {active ? 'Active' : 'Inactive'}
-    </span>
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirm.open}
+        onClose={() => setDeleteConfirm({ open: false, id: '', code: '' })}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Delete coupon <strong>{deleteConfirm.code}</strong>?
+          </Typography>
+          <Typography variant="body2" color="error.main">
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="outlined"
+            onClick={() => setDeleteConfirm({ open: false, id: '', code: '' })}
+            disabled={Boolean(deletingId)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={confirmDelete}
+            disabled={Boolean(deletingId)}
+            startIcon={
+              deletingId
+                ? <CircularProgress size={14} color="inherit" />
+                : <Icon icon="mdi:delete-outline" width={14} />
+            }
+          >
+            {deletingId ? 'Deleting...' : 'Yes, Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   )
 }
 

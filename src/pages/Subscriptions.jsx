@@ -6,6 +6,14 @@ import {
   updateSubscriptionStatus,
   deleteSubscription
 } from '../services/api.js'
+import {
+  Box, Card, CardContent, Typography, Button, Alert, TextField,
+  Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
+  Dialog, DialogTitle, DialogContent, DialogActions, Grid,
+  CircularProgress, Chip, FormControl, InputLabel, Select, MenuItem,
+  Switch, FormControlLabel, Snackbar, IconButton
+} from '@mui/material'
+import { Icon } from '@iconify/react'
 
 const emptyForm = {
   name: '',
@@ -166,251 +174,322 @@ export default function Subscriptions() {
   const totalPlanPrice = Number.isFinite(basePriceValue) ? basePriceValue + gstAmount : 0
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Subscriptions</h2>
-        <button
-          type="button"
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Page Header */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+        <Typography variant="h5" fontWeight={600}>Subscriptions</Typography>
+        <Button
+          variant="contained"
           onClick={openCreate}
-          className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700"
+          startIcon={<Icon icon="mdi:plus" />}
         >
           New Plan
-        </button>
-      </div>
+        </Button>
+      </Box>
 
-      {error && <div className="text-red-600 text-sm">{error}</div>}
+      {/* Error alert */}
+      {error && (
+        <Alert severity="error" onClose={() => setError('')}>{error}</Alert>
+      )}
 
+      {/* Table */}
       {loading ? (
-        <div>Loading...</div>
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+          <CircularProgress />
+        </Box>
       ) : rows.length === 0 ? (
-        <div className="text-gray-500">No subscriptions found</div>
+        <Card>
+          <CardContent sx={{ py: 6, textAlign: 'center' }}>
+            <Icon icon="mdi:card-multiple-outline" width={48} style={{ color: '#9e9e9e', marginBottom: 8 }} />
+            <Typography color="text.secondary">No subscriptions found.</Typography>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="overflow-x-auto rounded border border-gray-200 dark:border-gray-700">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-4 py-2 text-left">Name</th>
-                <th className="px-4 py-2 text-left">Base Price (INR)</th>
-                <th className="px-4 py-2 text-left">GST %</th>
-                <th className="px-4 py-2 text-left">Total Price (INR)</th>
-                <th className="px-4 py-2 text-left">Duration (days)</th>
-                <th className="px-4 py-2 text-left">Status</th>
-                <th className="px-4 py-2 text-left">CreatedAt</th>
-                <th className="px-4 py-2 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {rows.map((item) => {
-                const id = item?._id || item?.id
-                const createdAt = item?.createdAt ? new Date(item.createdAt) : null
-                return (
-                  <tr key={id} className="bg-white dark:bg-gray-800">
-                    <td className="px-4 py-2">{item?.name || '—'}</td>
-                    <td className="px-4 py-2">INR {item?.price ?? '—'}</td>
-                    <td className="px-4 py-2">{Number.isFinite(Number(item?.gstPercent)) ? Number(item.gstPercent) : '—'}</td>
-                    <td className="px-4 py-2">
-                      INR {item?.totalPrice ?? (
-                        Number.isFinite(Number(item?.price)) && Number.isFinite(Number(item?.gstPercent))
-                          ? (Number(item.price) + (Number(item.price) * Number(item.gstPercent)) / 100).toFixed(2)
-                          : '—'
-                      )}
-                    </td>
-                    <td className="px-4 py-2">{item?.durationDays ?? '—'}</td>
-                    <td className="px-4 py-2">
-                      <span className={item?.isActive ? 'text-emerald-600' : 'text-gray-500'}>
-                        {item?.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2">
-                      {createdAt && !Number.isNaN(createdAt.getTime())
-                        ? createdAt.toLocaleString()
-                        : '—'}
-                    </td>
-                    <td className="px-4 py-2 text-right space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(item)}
-                        className="px-3 py-1 rounded bg-blue-600 text-white"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busy.id === id}
-                        onClick={() => toggleActive(item)}
-                        className="px-3 py-1 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60"
-                      >
-                        {busy.id === id && busy.action === 'toggle'
-                          ? 'Updating...'
-                          : item?.isActive
-                            ? 'Deactivate'
-                            : 'Activate'}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busy.id === id}
-                        onClick={() => setDeleteConfirm({ open: true, id, name: item?.name || 'this plan' })}
-                        className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Card>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Base Price (INR)</TableCell>
+                  <TableCell>GST %</TableCell>
+                  <TableCell>Total Price (INR)</TableCell>
+                  <TableCell>Duration (days)</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Created At</TableCell>
+                  <TableCell align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {rows.map((item) => {
+                  const id = item?._id || item?.id
+                  const createdAt = item?.createdAt ? new Date(item.createdAt) : null
+                  const isBusy = busy.id === id
+                  return (
+                    <TableRow key={id} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={500}>{item?.name || '—'}</Typography>
+                      </TableCell>
+                      <TableCell>INR {item?.price ?? '—'}</TableCell>
+                      <TableCell>
+                        {Number.isFinite(Number(item?.gstPercent)) ? Number(item.gstPercent) : '—'}
+                      </TableCell>
+                      <TableCell>
+                        INR {item?.totalPrice ?? (
+                          Number.isFinite(Number(item?.price)) && Number.isFinite(Number(item?.gstPercent))
+                            ? (Number(item.price) + (Number(item.price) * Number(item.gstPercent)) / 100).toFixed(2)
+                            : '—'
+                        )}
+                      </TableCell>
+                      <TableCell>{item?.durationDays ?? '—'}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={item?.isActive ? 'Active' : 'Inactive'}
+                          color={item?.isActive ? 'success' : 'default'}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        {createdAt && !Number.isNaN(createdAt.getTime())
+                          ? createdAt.toLocaleString()
+                          : '—'}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="primary"
+                            onClick={() => openEdit(item)}
+                            startIcon={<Icon icon="mdi:pencil-outline" width={14} />}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color={item?.isActive ? 'warning' : 'success'}
+                            disabled={isBusy}
+                            onClick={() => toggleActive(item)}
+                            startIcon={
+                              isBusy && busy.action === 'toggle'
+                                ? <CircularProgress size={12} />
+                                : <Icon icon={item?.isActive ? 'mdi:pause-circle-outline' : 'mdi:play-circle-outline'} width={14} />
+                            }
+                          >
+                            {isBusy && busy.action === 'toggle'
+                              ? 'Updating...'
+                              : item?.isActive
+                                ? 'Deactivate'
+                                : 'Activate'}
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            disabled={isBusy}
+                            onClick={() => setDeleteConfirm({ open: true, id, name: item?.name || 'this plan' })}
+                            startIcon={<Icon icon="mdi:delete-outline" width={14} />}
+                          >
+                            Delete
+                          </Button>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
       )}
 
-      {deleteConfirm.open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-md p-5 space-y-4">
-            <div className="font-semibold text-lg">Confirm Delete</div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Delete subscription <span className="font-medium">{deleteConfirm.name}</span>?
-            </p>
-            <p className="text-sm text-red-600">This action cannot be undone.</p>
-            <div className="flex gap-2 justify-end">
-              <button
-                disabled={busy.id === deleteConfirm.id && busy.action === 'delete'}
-                onClick={() => setDeleteConfirm({ open: false, id: null, name: '' })}
-                className="px-4 py-2 rounded border dark:border-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={busy.id === deleteConfirm.id && busy.action === 'delete'}
-                onClick={async () => {
-                  if (!deleteConfirm.id) return
-                  try {
-                    setBusy({ id: deleteConfirm.id, action: 'delete' })
-                    await deleteSubscription(deleteConfirm.id)
-                    pushToast('success', 'Subscription deleted')
-                    setDeleteConfirm({ open: false, id: null, name: '' })
-                    await fetchSubscriptions()
-                  } catch {
-                    pushToast('error', 'Failed to delete subscription')
-                    setError('Failed to delete subscription')
-                  } finally {
-                    setBusy({ id: null, action: '' })
-                  }
-                }}
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
-              >
-                {busy.id === deleteConfirm.id && busy.action === 'delete' ? 'Deleting...' : 'Yes, Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <form onSubmit={submit} className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-3xl p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="font-semibold text-lg">{editingId ? 'Edit Plan' : 'Create Plan'}</div>
-              <button type="button" onClick={closeModal} className="text-gray-500">Close</button>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <input
-                type="text"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Name"
-                className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-                required
-              />
-              <input
-                type="text"
-                value={form.currency}
-                onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
-                placeholder="Currency (INR)"
-                className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-              />
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.price}
-                onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                placeholder="Base Price"
-                className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-                required
-              />
-              <div className="space-y-1">
-                <label className="text-sm text-gray-600 dark:text-gray-300">GST %</label>
-                <select
-                  value={form.gstPercent}
-                  onChange={(e) => setForm((f) => ({ ...f, gstPercent: Number(e.target.value) }))}
-                  className="w-full rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-                >
-                  <option value={0}>0</option>
-                  <option value={5}>5</option>
-                  <option value={18}>18</option>
-                </select>
-              </div>
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-sm text-gray-600 dark:text-gray-300">Total Plan Price (INR)</label>
-                <input
-                  type="text"
-                  value={`INR ${Number.isFinite(totalPlanPrice) ? totalPlanPrice.toFixed(2) : '0.00'}`}
-                  readOnly
-                  className="w-full rounded border bg-gray-50 dark:bg-gray-900/40 border-gray-300 dark:border-gray-700 px-3 py-2"
-                />
-              </div>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={form.durationDays}
-                onChange={(e) => setForm((f) => ({ ...f, durationDays: e.target.value }))}
-                placeholder="Duration (days)"
-                className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-                required
-              />
-            </div>
-
-            <textarea
-              value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              placeholder="Description"
-              rows={3}
-              className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-3 py-2"
-            />
-
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.isActive}
-                onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-              />
-              Active
-            </label>
-
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={closeModal} className="px-4 py-2 rounded border border-gray-300 dark:border-gray-700">
-                Cancel
-              </button>
-              <button type="submit" disabled={saving} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
-                {saving ? 'Saving...' : (editingId ? 'Save' : 'Create')}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className={`px-4 py-2 rounded shadow text-white ${t.type === 'error' ? 'bg-red-600' : 'bg-emerald-600'}`}
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirm.open}
+        onClose={() => setDeleteConfirm({ open: false, id: null, name: '' })}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Delete subscription <strong>{deleteConfirm.name}</strong>?
+          </Typography>
+          <Typography variant="body2" color="error.main">
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="outlined"
+            disabled={busy.id === deleteConfirm.id && busy.action === 'delete'}
+            onClick={() => setDeleteConfirm({ open: false, id: null, name: '' })}
           >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={busy.id === deleteConfirm.id && busy.action === 'delete'}
+            startIcon={
+              busy.id === deleteConfirm.id && busy.action === 'delete'
+                ? <CircularProgress size={14} color="inherit" />
+                : null
+            }
+            onClick={async () => {
+              if (!deleteConfirm.id) return
+              try {
+                setBusy({ id: deleteConfirm.id, action: 'delete' })
+                await deleteSubscription(deleteConfirm.id)
+                pushToast('success', 'Subscription deleted')
+                setDeleteConfirm({ open: false, id: null, name: '' })
+                await fetchSubscriptions()
+              } catch {
+                pushToast('error', 'Failed to delete subscription')
+                setError('Failed to delete subscription')
+              } finally {
+                setBusy({ id: null, action: '' })
+              }
+            }}
+          >
+            {busy.id === deleteConfirm.id && busy.action === 'delete' ? 'Deleting...' : 'Yes, Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Create / Edit Plan Dialog */}
+      <Dialog open={modalOpen} onClose={closeModal} maxWidth="md" fullWidth>
+        <Box component="form" onSubmit={submit}>
+          <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>{editingId ? 'Edit Plan' : 'Create Plan'}</span>
+            <IconButton size="small" onClick={closeModal}>
+              <Icon icon="mdi:close" />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent dividers>
+            <Grid container spacing={2} sx={{ mt: 0 }}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Name"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  size="small"
+                  fullWidth
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Currency"
+                  value={form.currency}
+                  onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
+                  placeholder="INR"
+                  size="small"
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Base Price"
+                  type="number"
+                  inputProps={{ min: 0, step: '0.01' }}
+                  value={form.price}
+                  onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                  size="small"
+                  fullWidth
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl size="small" fullWidth>
+                  <InputLabel>GST %</InputLabel>
+                  <Select
+                    label="GST %"
+                    value={form.gstPercent}
+                    onChange={(e) => setForm((f) => ({ ...f, gstPercent: Number(e.target.value) }))}
+                  >
+                    <MenuItem value={0}>0</MenuItem>
+                    <MenuItem value={5}>5</MenuItem>
+                    <MenuItem value={18}>18</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Total Plan Price (INR)"
+                  value={`INR ${Number.isFinite(totalPlanPrice) ? totalPlanPrice.toFixed(2) : '0.00'}`}
+                  size="small"
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                  sx={{ bgcolor: 'action.hover', borderRadius: 1 }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Duration (days)"
+                  type="number"
+                  inputProps={{ min: 0, step: 1 }}
+                  value={form.durationDays}
+                  onChange={(e) => setForm((f) => ({ ...f, durationDays: e.target.value }))}
+                  size="small"
+                  fullWidth
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Description"
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  multiline
+                  rows={3}
+                  size="small"
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={form.isActive}
+                      onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+                      color="primary"
+                    />
+                  }
+                  label="Active"
+                />
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button variant="outlined" onClick={closeModal}>Cancel</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={saving}
+              startIcon={saving ? <CircularProgress size={14} color="inherit" /> : null}
+            >
+              {saving ? 'Saving...' : editingId ? 'Save' : 'Create'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
+      {/* Toast Notifications */}
+      {toasts.map((t) => (
+        <Snackbar
+          key={t.id}
+          open
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          autoHideDuration={3000}
+        >
+          <Alert severity={t.type === 'error' ? 'error' : 'success'} variant="filled" sx={{ minWidth: 200 }}>
             {t.message}
-          </div>
-        ))}
-      </div>
-    </div>
+          </Alert>
+        </Snackbar>
+      ))}
+    </Box>
   )
 }

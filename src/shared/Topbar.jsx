@@ -1,31 +1,134 @@
+import {
+  AppBar, Toolbar, IconButton, Box, Typography, Avatar,
+  Tooltip, Menu, MenuItem, Divider, useTheme, alpha
+} from '@mui/material'
+import { Icon } from '@iconify/react'
+import { useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { useEffect, useState } from 'react'
+import { SIDEBAR_WIDTH_PX } from '../theme/index.js'
 
-export function Topbar({ onMenu }) {
+export function Topbar({ onMenuToggle, toggleMode, mode, sidebarWidth }) {
   const { user, logout } = useAuth()
-  const [dark, setDark] = useState(false)
-  useEffect(() => {
-    const root = document.documentElement
-    if (dark) root.classList.add('dark')
-    else root.classList.remove('dark')
-  }, [dark])
+  const theme = useTheme()
+  const [anchorEl, setAnchorEl] = useState(null)
+
+  const initials = user?.name
+    ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'A'
+
+  const isDark = mode === 'dark'
+
   return (
-    <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-800/80 backdrop-blur border-b border-gray-100 dark:border-gray-700">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
-          <button className="lg:hidden p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700" onClick={onMenu} aria-label="Toggle Menu">
-            ☰
-          </button>
-          <div className="font-semibold">FMF Admin</div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="px-3 py-1.5 rounded border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setDark((v) => !v)}>
-            {dark ? 'Light' : 'Dark'}
-          </button>
-          <div className="text-sm">{user?.name}</div>
-          <button className="px-3 py-1.5 rounded bg-gray-900 text-white dark:bg-gray-700" onClick={logout}>Logout</button>
-        </div>
-      </div>
-    </header>
+    <AppBar
+      position="sticky"
+      elevation={0}
+      sx={{
+        zIndex: (t) => t.zIndex.drawer - 1,
+        width: { lg: `calc(100% - ${sidebarWidth}px)` },
+        ml: { lg: `${sidebarWidth}px` },
+        transition: 'width 0.25s ease, margin-left 0.25s ease',
+        bgcolor: isDark
+          ? alpha(theme.palette.background.paper, 0.85)
+          : alpha('#FFFFFF', 0.85),
+        backdropFilter: 'blur(8px)',
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        color: theme.palette.text.primary,
+      }}
+    >
+      <Toolbar sx={{ px: { xs: 3, sm: 6 }, minHeight: '64px !important', gap: 1 }}>
+        {/* Mobile Menu Button */}
+        <IconButton
+          edge="start"
+          onClick={onMenuToggle}
+          sx={{ mr: 1, display: { lg: 'none' }, color: 'text.secondary' }}
+          aria-label="open menu"
+        >
+          <Icon icon="mdi:menu" fontSize={22} />
+        </IconButton>
+
+        {/* Search placeholder area */}
+        <Box sx={{ flex: 1 }} />
+
+        {/* Right actions */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          {/* Dark/Light Mode Toggle */}
+          <Tooltip title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+            <IconButton
+              onClick={toggleMode}
+              size="small"
+              sx={{ color: 'text.secondary', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) } }}
+            >
+              <Icon icon={isDark ? 'mdi:weather-sunny' : 'mdi:weather-night'} fontSize={20} />
+            </IconButton>
+          </Tooltip>
+
+          {/* Notifications placeholder */}
+          <Tooltip title="Notifications">
+            <IconButton
+              size="small"
+              sx={{ color: 'text.secondary', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) } }}
+            >
+              <Icon icon="mdi:bell-outline" fontSize={20} />
+            </IconButton>
+          </Tooltip>
+
+          {/* User Avatar + Menu */}
+          <Tooltip title="Account">
+            <IconButton
+              onClick={(e) => setAnchorEl(e.currentTarget)}
+              size="small"
+              sx={{ ml: 0.5 }}
+            >
+              <Avatar
+                sx={{
+                  width: 36,
+                  height: 36,
+                  bgcolor: 'primary.main',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                }}
+              >
+                {initials}
+              </Avatar>
+            </IconButton>
+          </Tooltip>
+        </Box>
+
+        {/* User dropdown menu */}
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={() => setAnchorEl(null)}
+          PaperProps={{
+            elevation: 4,
+            sx: {
+              mt: 1.5,
+              minWidth: 200,
+              borderRadius: 2,
+              '& .MuiMenuItem-root': { px: 2, py: 1.25, borderRadius: 1, mx: 0.5 },
+            },
+          }}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        >
+          <Box sx={{ px: 2.5, py: 1.5 }}>
+            <Typography variant="subtitle2" fontWeight={600} noWrap>
+              {user?.name || 'Admin'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" noWrap>
+              {user?.email || 'admin'}
+            </Typography>
+          </Box>
+          <Divider sx={{ my: 0.5 }} />
+          <MenuItem
+            onClick={() => { setAnchorEl(null); logout() }}
+            sx={{ color: 'error.main', gap: 1.5 }}
+          >
+            <Icon icon="mdi:logout-variant" fontSize={18} />
+            <Typography variant="body2" fontWeight={500}>Logout</Typography>
+          </MenuItem>
+        </Menu>
+      </Toolbar>
+    </AppBar>
   )
 }

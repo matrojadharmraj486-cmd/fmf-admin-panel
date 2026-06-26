@@ -10,6 +10,40 @@ import {
 import { Loader } from '../shared/Loader.jsx'
 import { RichEditor } from '../shared/RichEditor.jsx'
 import { AnswerBlocksEditor } from '../shared/AnswerBlocksEditor.jsx'
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Alert,
+  TextField,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  CircularProgress,
+  IconButton,
+  Tooltip,
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Divider,
+  Paper
+} from '@mui/material'
+import { Icon } from '@iconify/react'
 
 const emptyEditState = {
   open: false,
@@ -280,216 +314,297 @@ export default function StructuredDetail() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Structured | {year} | {String(part).toUpperCase()} {paper ? `| ${paper}` : ''}</h2>
-      </div>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography variant="h5" fontWeight={600}>
+          Structured | {year} | {String(part).toUpperCase()} {paper ? `| ${paper}` : ''}
+        </Typography>
+      </Box>
 
-      {error && <div className="text-red-600 text-sm">{error}</div>}
-      {ok && <div className="text-green-600 text-sm">{ok}</div>}
+      {/* Alerts */}
+      {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
+      {ok && <Alert severity="success" onClose={() => setOk('')}>{ok}</Alert>}
 
+      {/* Question list */}
       {loading ? <Loader /> : (
-        <div className="space-y-4">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {list.map((parent, pIdx) => (
-            <div key={parent.dbid || `${parent.id}-${pIdx}`} className="rounded-xl bg-white dark:bg-gray-800 shadow p-5 space-y-4 border border-gray-100 dark:border-gray-700">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="font-semibold text-lg leading-7">
-                    {parent.questionId && <span className="mr-2 text-indigo-700 dark:text-indigo-300">{parent.questionId}.</span>}
-                    <span dangerouslySetInnerHTML={{ __html: parent.question_text }} />
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                    <span>{parent.year} | {String(parent.part).toUpperCase()}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={() => startEdit(parent)} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">Edit</button>
-                  <button
-                    onClick={() => setAsQotd(parent)}
-                    disabled={qotdSavingId === parent.dbid}
-                    className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
-                  >
-                    {qotdSavingId === parent.dbid ? 'Setting...' : 'Add QOTD'}
-                  </button>
-                  <button onClick={() => openDeleteConfirm(parent)} className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">Delete</button>
-                </div>
-              </div>
+            <Card key={parent.dbid || `${parent.id}-${pIdx}`} variant="outlined" sx={{ borderRadius: 2 }}>
+              <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {/* Question header */}
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Typography variant="h6" fontWeight={600} lineHeight={1.4}>
+                      {parent.questionId && (
+                        <Box component="span" sx={{ mr: 1, color: 'primary.main' }}>{parent.questionId}.</Box>
+                      )}
+                      <span dangerouslySetInnerHTML={{ __html: parent.question_text }} />
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {parent.year} | {String(parent.part).toUpperCase()}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() => startEdit(parent)}
+                      startIcon={<Icon icon="mdi:pencil-outline" />}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="success"
+                      size="small"
+                      onClick={() => setAsQotd(parent)}
+                      disabled={qotdSavingId === parent.dbid}
+                      startIcon={qotdSavingId === parent.dbid ? <CircularProgress size={14} color="inherit" /> : <Icon icon="mdi:star-outline" />}
+                    >
+                      {qotdSavingId === parent.dbid ? 'Setting...' : 'Add QOTD'}
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="error"
+                      size="small"
+                      onClick={() => openDeleteConfirm(parent)}
+                      startIcon={<Icon icon="mdi:delete-outline" />}
+                    >
+                      Delete
+                    </Button>
+                  </Box>
+                </Box>
 
-              <div className="space-y-3">
+                {/* Direct answer */}
                 {parent.isDirect && (
-                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/40">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Main Answer | {parent.answerType || 'text'}</div>
-                    <div className="mt-2">
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Main Answer | {parent.answerType || 'text'}
+                    </Typography>
+                    <Box sx={{ mt: 1 }}>
                       {(parent.answerType || 'text') === 'text' && Array.isArray(parent.answer) && (
-                        <ul className="list-disc ml-5 space-y-1">
+                        <Box component="ul" sx={{ pl: 2.5, m: 0, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                           {parent.answer.map((a, idx) => <li key={idx} dangerouslySetInnerHTML={{ __html: a }} />)}
-                        </ul>
+                        </Box>
                       )}
                       {(parent.answerType || 'text') === 'image' && parent.answerImage && (
-                        <img src={parent.answerImage} alt="answer" className="mt-2 max-h-48 object-contain rounded border border-gray-200 dark:border-gray-700" />
+                        <Box
+                          component="img"
+                          src={parent.answerImage}
+                          alt="answer"
+                          sx={{ mt: 1, maxHeight: 192, objectFit: 'contain', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
+                        />
                       )}
                       {(parent.answerType || 'text') === 'rich' && Array.isArray(parent.answerBlocks) && parent.answerBlocks.length > 0 && (
-                        <div className="space-y-3">
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                           {parent.answerBlocks.map((b, idx) => (
-                            <div key={`${b?.type || 'block'}-${idx}`}>
+                            <Box key={`${b?.type || 'block'}-${idx}`}>
                               {b?.type === 'image' ? (
-                                b?.url ? <img src={abs(b.url)} alt="answer" className="max-h-56 object-contain rounded border border-gray-200 dark:border-gray-700" /> : null
+                                b?.url ? (
+                                  <Box
+                                    component="img"
+                                    src={abs(b.url)}
+                                    alt="answer"
+                                    sx={{ maxHeight: 224, objectFit: 'contain', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
+                                  />
+                                ) : null
                               ) : (
-                                <div dangerouslySetInnerHTML={{ __html: b?.text || '' }} />
+                                <Box dangerouslySetInnerHTML={{ __html: b?.text || '' }} />
                               )}
-                            </div>
+                            </Box>
                           ))}
-                        </div>
+                        </Box>
                       )}
-                    </div>
-                  </div>
+                    </Box>
+                  </Paper>
                 )}
+
+                {/* Main question answer (non-direct with answer blocks) */}
                 {!parent.isDirect && ((Array.isArray(parent.mainQuestionAnswer) && parent.mainQuestionAnswer.length > 0) || (Array.isArray(parent.mainQuestionAnswerBlocks) && parent.mainQuestionAnswerBlocks.length > 0)) && (
-                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/40">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Main Question Answer</div>
-                    <div className="mt-2">
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
+                    <Typography variant="caption" color="text.secondary">Main Question Answer</Typography>
+                    <Box sx={{ mt: 1 }}>
                       {Array.isArray(parent.mainQuestionAnswerBlocks) && parent.mainQuestionAnswerBlocks.length > 0 ? (
-                        <div className="space-y-3">
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                           {parent.mainQuestionAnswerBlocks.map((b, idx) => (
-                            <div key={`${b?.type || 'block'}-${idx}`}>
+                            <Box key={`${b?.type || 'block'}-${idx}`}>
                               {b?.type === 'image' ? (
-                                b?.url ? <img src={abs(b.url)} alt="answer" className="max-h-56 object-contain rounded border border-gray-200 dark:border-gray-700" /> : null
+                                b?.url ? (
+                                  <Box
+                                    component="img"
+                                    src={abs(b.url)}
+                                    alt="answer"
+                                    sx={{ maxHeight: 224, objectFit: 'contain', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
+                                  />
+                                ) : null
                               ) : (
-                                <div dangerouslySetInnerHTML={{ __html: b?.text || '' }} />
+                                <Box dangerouslySetInnerHTML={{ __html: b?.text || '' }} />
                               )}
-                            </div>
+                            </Box>
                           ))}
-                        </div>
+                        </Box>
                       ) : parent.mainQuestionAnswer.length === 1 ? (
-                        <div dangerouslySetInnerHTML={{ __html: parent.mainQuestionAnswer[0] || '' }} />
+                        <Box dangerouslySetInnerHTML={{ __html: parent.mainQuestionAnswer[0] || '' }} />
                       ) : (
-                        <ul className="list-disc ml-5 space-y-1">
+                        <Box component="ul" sx={{ pl: 2.5, m: 0, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                           {parent.mainQuestionAnswer.map((a, idx) => <li key={idx} dangerouslySetInnerHTML={{ __html: a }} />)}
-                        </ul>
+                        </Box>
                       )}
-                    </div>
-                  </div>
+                    </Box>
+                  </Paper>
                 )}
+
+                {/* Sub questions */}
                 {(parent.sub_questions || []).map((sub, sIdx) => (
-                  <div key={`${sub.id}-${sIdx}`} className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/40">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="font-medium" dangerouslySetInnerHTML={{ __html: sub.text }} />
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{String(sub.part).toUpperCase()} | {sub.answerType}</div>
-                      </div>
-                    </div>
-                    <div className="mt-2">
+                  <Paper key={`${sub.id}-${sIdx}`} variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 1 }}>
+                      <Box>
+                        <Box fontWeight={500} dangerouslySetInnerHTML={{ __html: sub.text }} />
+                        <Typography variant="caption" color="text.secondary">
+                          {String(sub.part).toUpperCase()} | {sub.answerType}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box>
                       {sub.answerType === 'text' && Array.isArray(sub.answer) && (
-                        <ul className="list-disc ml-5 space-y-1">
+                        <Box component="ul" sx={{ pl: 2.5, m: 0, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                           {sub.answer.map((a, idx) => <li key={idx} dangerouslySetInnerHTML={{ __html: a }} />)}
-                        </ul>
+                        </Box>
                       )}
                       {sub.answerType === 'image' && sub.answerImage && (
-                        <img src={sub.answerImage} alt="answer" className="mt-2 max-h-48 object-contain rounded border border-gray-200 dark:border-gray-700" />
+                        <Box
+                          component="img"
+                          src={sub.answerImage}
+                          alt="answer"
+                          sx={{ mt: 1, maxHeight: 192, objectFit: 'contain', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
+                        />
                       )}
                       {sub.answerType === 'rich' && Array.isArray(sub.answerBlocks) && sub.answerBlocks.length > 0 && (
-                        <div className="space-y-3">
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                           {sub.answerBlocks.map((b, idx) => (
-                            <div key={`${b?.type || 'block'}-${idx}`}>
+                            <Box key={`${b?.type || 'block'}-${idx}`}>
                               {b?.type === 'image' ? (
-                                b?.url ? <img src={abs(b.url)} alt="answer" className="max-h-56 object-contain rounded border border-gray-200 dark:border-gray-700" /> : null
+                                b?.url ? (
+                                  <Box
+                                    component="img"
+                                    src={abs(b.url)}
+                                    alt="answer"
+                                    sx={{ maxHeight: 224, objectFit: 'contain', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
+                                  />
+                                ) : null
                               ) : (
-                                <div dangerouslySetInnerHTML={{ __html: b?.text || '' }} />
+                                <Box dangerouslySetInnerHTML={{ __html: b?.text || '' }} />
                               )}
-                            </div>
+                            </Box>
                           ))}
-                        </div>
+                        </Box>
                       )}
-                    </div>
-                  </div>
+                    </Box>
+                  </Paper>
                 ))}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
-        </div>
+        </Box>
       )}
 
-      {deleteConfirm.open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-md p-5 space-y-4">
-            <div className="font-semibold text-lg">Confirm Delete</div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Are you sure you want to delete this question?
-            </p>
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
-              {deleteConfirm.title}
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button disabled={deleting} onClick={closeDeleteConfirm} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
-              <button disabled={deleting} onClick={confirmDelete} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60">
-                {deleting ? 'Deleting...' : 'Yes, Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete Confirm Dialog */}
+      <Dialog open={deleteConfirm.open} onClose={closeDeleteConfirm} maxWidth="xs" fullWidth>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Are you sure you want to delete this question?
+          </Typography>
+          <Typography
+            variant="body2"
+            fontWeight={500}
+            sx={{
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden'
+            }}
+          >
+            {deleteConfirm.title}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button variant="outlined" disabled={deleting} onClick={closeDeleteConfirm}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={deleting}
+            onClick={confirmDelete}
+            startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:delete" />}
+          >
+            {deleting ? 'Deleting...' : 'Yes, Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      {editState.open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-5xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="font-semibold text-lg">Edit Question and Answers</div>
+      {/* Edit Dialog */}
+      <Dialog open={editState.open} onClose={closeEdit} maxWidth="lg" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
+        <DialogTitle>Edit Question and Answers</DialogTitle>
+        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box>
+            <Typography variant="body2" gutterBottom>Question</Typography>
+            <RichEditor value={editState.questionHtml} onChange={(html) => setEditState((s) => ({ ...s, questionHtml: html }))} />
+          </Box>
 
-            <div className="space-y-2">
-              <label className="block text-sm">Question</label>
-              <RichEditor value={editState.questionHtml} onChange={(html) => setEditState((s) => ({ ...s, questionHtml: html }))} />
-            </div>
+          {editState.isDirect && (
+            <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Typography variant="body2" color="text.secondary" fontWeight={500}>Direct Answer</Typography>
+              <AnswerBlocksEditor
+                value={editState.parentAnswerBlocks}
+                onChange={(blocks) => setEditState((s) => ({ ...s, parentAnswerBlocks: blocks }))}
+              />
+            </Paper>
+          )}
 
-            {editState.isDirect && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
-                <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Direct Answer</div>
-                <AnswerBlocksEditor
-                  value={editState.parentAnswerBlocks}
-                  onChange={(blocks) => setEditState((s) => ({ ...s, parentAnswerBlocks: blocks }))}
-                />
-              </div>
-            )}
+          {!editState.isDirect && (
+            <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Typography variant="body2" color="text.secondary" fontWeight={500}>Main Question Answer</Typography>
+              <AnswerBlocksEditor
+                value={editState.mainQuestionAnswerBlocks}
+                onChange={(blocks) => setEditState((s) => ({ ...s, mainQuestionAnswerBlocks: blocks }))}
+              />
+            </Paper>
+          )}
 
-            {!editState.isDirect && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
-                <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Main Question Answer</div>
-                <AnswerBlocksEditor
-                  value={editState.mainQuestionAnswerBlocks}
-                  onChange={(blocks) => setEditState((s) => ({ ...s, mainQuestionAnswerBlocks: blocks }))}
-                />
-              </div>
-            )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {editState.subs.map((sub, index) => (
+              <Paper key={sub.sid || index} variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Typography variant="body2" color="text.secondary" fontWeight={500}>Sub Question {index + 1}</Typography>
 
-            <div className="space-y-4">
-              {editState.subs.map((sub, index) => (
-                <div key={sub.sid || index} className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
-                  <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Sub Question {index + 1}</div>
+                <Box>
+                  <Typography variant="body2" gutterBottom>Sub Question Text</Typography>
+                  <RichEditor value={sub.textHtml} onChange={(html) => updateEditSub(sub.sid, { textHtml: html })} />
+                </Box>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm">Sub Question Text</label>
-                    <RichEditor value={sub.textHtml} onChange={(html) => updateEditSub(sub.sid, { textHtml: html })} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-sm">Answer</label>
-                    <AnswerBlocksEditor
-                      value={sub.answerBlocks}
-                      onChange={(blocks) => updateEditSub(sub.sid, { answerBlocks: blocks })}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex gap-2 justify-end">
-              <button onClick={closeEdit} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
-              <button disabled={saving} onClick={saveEdit} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
-                {saving ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
+                <Box>
+                  <Typography variant="body2" gutterBottom>Answer</Typography>
+                  <AnswerBlocksEditor
+                    value={sub.answerBlocks}
+                    onChange={(blocks) => updateEditSub(sub.sid, { answerBlocks: blocks })}
+                  />
+                </Box>
+              </Paper>
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button variant="outlined" onClick={closeEdit}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={saving}
+            onClick={saveEdit}
+            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:content-save-outline" />}
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   )
 }

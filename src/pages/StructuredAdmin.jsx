@@ -15,6 +15,42 @@ import { useNavigate } from 'react-router-dom'
 import { RichEditor } from '../shared/RichEditor.jsx'
 import { AnswerBlocksEditor } from '../shared/AnswerBlocksEditor.jsx'
 import sampleStructuredFile from '../assets/files/questions-structured-hybrid-18.xlsx'
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Alert,
+  TextField,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  CircularProgress,
+  IconButton,
+  Tooltip,
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Divider,
+  Paper,
+  Checkbox,
+  FormControlLabel
+} from '@mui/material'
+import { Icon } from '@iconify/react'
 
 export default function StructuredAdmin() {
   const navigate = useNavigate()
@@ -26,7 +62,6 @@ export default function StructuredAdmin() {
   const [year, setYear] = useState('')
   const [part, setPart] = useState('')
   const [paper, setPaper] = useState('')
-  console
   const [years, setYears] = useState([])
   const [parts, setParts] = useState([])
   const [papers, setPapers] = useState([])
@@ -479,314 +514,407 @@ export default function StructuredAdmin() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Structured Questions</h2>
-        <button onClick={openCreateModal} className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700">
-          Add Question
-        </button>
-      </div>
-      <form onSubmit={onUpload} className="grid md:grid-cols-5 gap-3 bg-white dark:bg-gray-800 p-3 rounded shadow">
-        <input type="file" accept=".xlsx" onChange={(e) => setFile(e.target.files?.[0] || null)} className="rounded border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
-        <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={year} onChange={(e) => setYear(e.target.value)} required>
-          <option value="">Select year</option>
-          {years.map((y) => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
-        <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" value={part} onChange={(e) => setPart(e.target.value)} required>
-          <option value="">Select part</option>
-          {parts.map((p) => (
-            <option key={p.value} value={p.value}>{p.label}</option>
-          ))}
-        </select>
-        <select
-          className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
-          value={paper}
-          onChange={(e) => setPaper(e.target.value)}
-          disabled={!part}
-          required
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+        <Typography variant="h5" fontWeight={600}>Structured Questions</Typography>
+        <Button
+          variant="contained"
+          startIcon={<Icon icon="mdi:plus" />}
+          onClick={openCreateModal}
         >
-          <option value="">{part ? 'Select paper' : 'Select part first'}</option>
-          {papers.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-        <div className="flex gap-2">
-          <button disabled={uploading} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60 w-full">
-            {uploading ? 'Uploading...' : 'Upload'}
-          </button>
-        </div>
-      </form>
-      <div className="text-sm text-gray-600 dark:text-gray-400">
-        Sample file: <a href={sampleStructuredFile} download className="text-blue-600 hover:underline">Download .xlsx template</a>
-      </div>
-      {error && <div className="text-red-600 text-sm">{error}</div>}
-      {ok && <div className="text-green-600 text-sm">{ok}</div>}
+          Add Question
+        </Button>
+      </Box>
+
+      {/* Upload Form */}
+      <Card>
+        <CardContent>
+          <Box component="form" onSubmit={onUpload} sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<Icon icon="mdi:file-upload-outline" />}
+              sx={{ whiteSpace: 'nowrap' }}
+            >
+              {file ? file.name : 'Choose .xlsx'}
+              <input type="file" accept=".xlsx" hidden onChange={(e) => setFile(e.target.files?.[0] || null)} />
+            </Button>
+
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>Year</InputLabel>
+              <Select value={year} label="Year" onChange={(e) => setYear(e.target.value)} required>
+                {years.map((y) => (
+                  <MenuItem key={y} value={y}>{y}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>Part</InputLabel>
+              <Select value={part} label="Part" onChange={(e) => setPart(e.target.value)} required>
+                {parts.map((p) => (
+                  <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 140 }} disabled={!part}>
+              <InputLabel>Paper</InputLabel>
+              <Select value={paper} label="Paper" onChange={(e) => setPaper(e.target.value)} required>
+                {papers.map((p) => (
+                  <MenuItem key={p} value={p}>{p}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              disabled={uploading}
+              startIcon={uploading ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:upload" />}
+            >
+              {uploading ? 'Uploading...' : 'Upload'}
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Sample Download */}
+      <Typography variant="body2" color="text.secondary">
+        Sample file:{' '}
+        <Box component="a" href={sampleStructuredFile} download sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+          Download .xlsx template
+        </Box>
+      </Typography>
+
+      {/* Alerts */}
+      {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
+      {ok && <Alert severity="success" onClose={() => setOk('')}>{ok}</Alert>}
+
+      {/* List */}
       {loading ? <Loader /> : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm text-gray-600 dark:text-gray-300">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Bulk actions bar */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+            <Typography variant="body2" color="text.secondary">
               Selected: {selectedKeys.size}
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 text-sm select-none">
-                <input
-                  type="checkbox"
-                  className="h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900"
-                  checked={selectedKeys.size > 0 && selectedKeys.size === getSortedGroups(list).length}
-                  onChange={(e) => {
-                    const groups = getSortedGroups(list)
-                    const allKeys = groups.map(groupKeyFromGroup)
-                    setSelectedKeys(e.target.checked ? new Set(allKeys) : new Set())
-                  }}
-                />
-                Select all
-              </label>
-              <button
-                type="button"
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={selectedKeys.size > 0 && selectedKeys.size === getSortedGroups(list).length}
+                    onChange={(e) => {
+                      const groups = getSortedGroups(list)
+                      const allKeys = groups.map(groupKeyFromGroup)
+                      setSelectedKeys(e.target.checked ? new Set(allKeys) : new Set())
+                    }}
+                    size="small"
+                  />
+                }
+                label={<Typography variant="body2">Select all</Typography>}
+              />
+              <Button
+                variant="contained"
+                color="error"
+                size="small"
                 disabled={purging || selectedKeys.size === 0}
                 onClick={openBulkDeleteConfirm}
-                className="px-3 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+                startIcon={<Icon icon="mdi:delete-outline" />}
               >
                 Delete selected
-              </button>
-            </div>
-          </div>
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              </Button>
+            </Box>
+          </Box>
+
+          {/* Group cards grid */}
+          <Grid container spacing={2}>
             {getSortedGroups(list).map((g) => (
-              <div key={groupKeyFromGroup(g)} className="relative rounded bg-white dark:bg-gray-800 shadow p-4 cursor-pointer hover:shadow-md transition" onClick={() => navigate(`/structured-questions/${g.year}/${g.part}${g.paper ? `/${encodeURIComponent(g.paper)}` : ''}`)}>
-                <div className="flex items-start gap-3 pr-14">
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900"
-                    checked={selectedKeys.has(groupKeyFromGroup(g))}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                      const key = groupKeyFromGroup(g)
-                      setSelectedKeys((prev) => {
-                        const next = new Set(prev)
-                        if (e.target.checked) next.add(key)
-                        else next.delete(key)
-                        return next
-                      })
-                    }}
-                  />
-                  <div className="min-w-0">
-                    <div className="font-semibold truncate">
-                  {g.year} • {String(g.part).toUpperCase()} {g.paper ? `• ${g.paper}` : ''}
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">{g.countParents} parent • {g.countSubs} sub</div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setDeleteConfirm({ open: true, year: String(g.year), part: String(g.part), paper: String(g.paper || "") })
-                  }}
-                  className="absolute top-2 right-2 text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700"
+              <Grid item xs={12} sm={6} md={4} lg={3} key={groupKeyFromGroup(g)}>
+                <Card
+                  sx={{ cursor: 'pointer', position: 'relative', '&:hover': { boxShadow: 4 }, transition: 'box-shadow 0.2s' }}
+                  onClick={() => navigate(`/structured-questions/${g.year}/${g.part}${g.paper ? `/${encodeURIComponent(g.paper)}` : ''}`)}
                 >
-                  Delete
-                </button>
-              </div>
+                  <CardContent sx={{ pr: 7 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                      <Checkbox
+                        size="small"
+                        checked={selectedKeys.has(groupKeyFromGroup(g))}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          const key = groupKeyFromGroup(g)
+                          setSelectedKeys((prev) => {
+                            const next = new Set(prev)
+                            if (e.target.checked) next.add(key)
+                            else next.delete(key)
+                            return next
+                          })
+                        }}
+                        sx={{ mt: -0.5 }}
+                      />
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="subtitle2" fontWeight={600} noWrap>
+                          {g.year} &bull; {String(g.part).toUpperCase()} {g.paper ? `• ${g.paper}` : ''}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {g.countParents} parent &bull; {g.countSubs} sub
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                  <Tooltip title="Delete group">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      sx={{ position: 'absolute', top: 8, right: 8 }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteConfirm({ open: true, year: String(g.year), part: String(g.part), paper: String(g.paper || '') })
+                      }}
+                    >
+                      <Icon icon="mdi:delete" />
+                    </IconButton>
+                  </Tooltip>
+                </Card>
+              </Grid>
             ))}
-          </div>
-        </div>
+          </Grid>
+        </Box>
       )}
-      {createOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-5xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="font-semibold text-lg">Add Structured Question</div>
-            <div className="grid md:grid-cols-4 gap-3">
-              <div className="space-y-2">
-                <label className="block text-sm">Year</label>
-                <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.year} onChange={(e) => setCreateForm((s) => ({ ...s, year: e.target.value }))} required>
-                  <option value="">Select year</option>
-                  {[
-                      '2011','2012','2013','2014','2015',
-  '2016','2017','2018','2019','2020',
-  '2021','2022','2023','2024','2025',
-  '2026',
-  '2027','2028','2029','2030','2031',
-  '2032','2033','2034','2035','2036',
-  '2037','2038','2039','2040','2041'
-].map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm">Part</label>
-                <select className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full" value={createForm.part} onChange={(e) => setCreateForm((s) => ({ ...s, part: e.target.value }))} required>
-                  <option value="">Select part</option>
-                  <option value="part1">Part 1</option>
-                  <option value="part2">Part 2</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm">Paper (optional)</label>
-                <select
-                  className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
-                  value={createForm.paper}
-                  onChange={(e) => setCreateForm((s) => ({ ...s, paper: e.target.value }))}
-                  disabled={!createForm.part || !createForm.year}
+
+      {/* Create Question Dialog */}
+      <Dialog open={createOpen} onClose={closeCreateModal} maxWidth="lg" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
+        <DialogTitle>Add Structured Question</DialogTitle>
+        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Year</InputLabel>
+                <Select
+                  value={createForm.year}
+                  label="Year"
+                  onChange={(e) => setCreateForm((s) => ({ ...s, year: e.target.value }))}
+                  required
                 >
-                  <option value="">{createForm.part && createForm.year ? 'Select paper' : 'Select year/part first'}</option>
+                  {[
+                    '2011','2012','2013','2014','2015',
+                    '2016','2017','2018','2019','2020',
+                    '2021','2022','2023','2024','2025',
+                    '2026',
+                    '2027','2028','2029','2030','2031',
+                    '2032','2033','2034','2035','2036',
+                    '2037','2038','2039','2040','2041'
+                  ].map((y) => (
+                    <MenuItem key={y} value={y}>{y}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Part</InputLabel>
+                <Select
+                  value={createForm.part}
+                  label="Part"
+                  onChange={(e) => setCreateForm((s) => ({ ...s, part: e.target.value }))}
+                  required
+                >
+                  <MenuItem value="part1">Part 1</MenuItem>
+                  <MenuItem value="part2">Part 2</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="small" disabled={!createForm.part || !createForm.year}>
+                <InputLabel>Paper (optional)</InputLabel>
+                <Select
+                  value={createForm.paper}
+                  label="Paper (optional)"
+                  onChange={(e) => setCreateForm((s) => ({ ...s, paper: e.target.value }))}
+                >
+                  <MenuItem value="">
+                    {createForm.part && createForm.year ? 'Select paper' : 'Select year/part first'}
+                  </MenuItem>
                   {createPapers.map((p) => (
-                    <option key={p} value={p}>{p}</option>
+                    <MenuItem key={p} value={p}>{p}</MenuItem>
                   ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm">Question Type</label>
-                <label className="flex items-center gap-2 text-sm select-none">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(createForm.isDirect)}
-                    onChange={(e) => setCreateForm((s) => ({ ...s, isDirect: e.target.checked }))}
-                  />
-                  Direct (no sub-questions)
-                </label>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="block text-sm">Question</label>
-              <RichEditor value={createForm.questionHtml} onChange={(html) => setCreateForm((s) => ({ ...s, questionHtml: html }))} />
-            </div>
-
-            {createForm.isDirect ? (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
-                <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Direct Answer (Rich)</div>
-                <AnswerBlocksEditor
-                  value={createForm.directAnswerBlocks}
-                  onChange={(blocks) => setCreateForm((s) => ({ ...s, directAnswerBlocks: blocks }))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ pt: 0.5 }}>
+                <Typography variant="body2" gutterBottom>Question Type</Typography>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={Boolean(createForm.isDirect)}
+                      onChange={(e) => setCreateForm((s) => ({ ...s, isDirect: e.target.checked }))}
+                      size="small"
+                    />
+                  }
+                  label={<Typography variant="body2">Direct (no sub-questions)</Typography>}
                 />
-              </div>
-            ) : (
-              <>
-                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
-                  <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Main Question Answer (Rich)</div>
-                  <AnswerBlocksEditor
-                    value={createForm.mainQuestionAnswerBlocks}
-                    onChange={(blocks) => setCreateForm((s) => ({ ...s, mainQuestionAnswerBlocks: blocks }))}
-                  />
-                </div>
+              </Box>
+            </Grid>
+          </Grid>
 
-                <div className="flex items-center justify-between">
-                  <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Sub Questions</div>
-                  <button type="button" onClick={addCreateSub} className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 text-sm">
-                    + Add Sub Question
-                  </button>
-                </div>
+          <Box>
+            <Typography variant="body2" gutterBottom>Question</Typography>
+            <RichEditor value={createForm.questionHtml} onChange={(html) => setCreateForm((s) => ({ ...s, questionHtml: html }))} />
+          </Box>
 
-                <div className="space-y-4">
-                  {(Array.isArray(createForm.subs) ? createForm.subs : []).map((sub, index) => (
-                    <div key={sub.sid || index} className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="font-medium text-sm text-gray-600 dark:text-gray-300">Sub Question {index + 1}</div>
-                        <button
-                          type="button"
-                          onClick={() => removeCreateSub(sub.sid)}
-                          className="px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 text-sm"
-                        >
-                          Remove
-                        </button>
-                      </div>
+          {createForm.isDirect ? (
+            <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Typography variant="body2" color="text.secondary" fontWeight={500}>Direct Answer (Rich)</Typography>
+              <AnswerBlocksEditor
+                value={createForm.directAnswerBlocks}
+                onChange={(blocks) => setCreateForm((s) => ({ ...s, directAnswerBlocks: blocks }))}
+              />
+            </Paper>
+          ) : (
+            <>
+              <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Typography variant="body2" color="text.secondary" fontWeight={500}>Main Question Answer (Rich)</Typography>
+                <AnswerBlocksEditor
+                  value={createForm.mainQuestionAnswerBlocks}
+                  onChange={(blocks) => setCreateForm((s) => ({ ...s, mainQuestionAnswerBlocks: blocks }))}
+                />
+              </Paper>
 
-                      <div className="grid md:grid-cols-3 gap-3">
-                        <div className="space-y-2">
-                          <label className="block text-sm">Sub Part</label>
-                          <input
-                            className="rounded border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 w-full"
-                            value={sub.part}
-                            onChange={(e) => updateCreateSub(sub.sid, { part: e.target.value })}
-                            placeholder="a"
-                          />
-                        </div>
-                      </div>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="body2" color="text.secondary" fontWeight={500}>Sub Questions</Typography>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="success"
+                  onClick={addCreateSub}
+                  startIcon={<Icon icon="mdi:plus" />}
+                >
+                  Add Sub Question
+                </Button>
+              </Box>
 
-                      <div className="space-y-2">
-                        <label className="block text-sm">Sub Question</label>
-                        <RichEditor value={sub.textHtml} onChange={(html) => updateCreateSub(sub.sid, { textHtml: html })} />
-                      </div>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {(Array.isArray(createForm.subs) ? createForm.subs : []).map((sub, index) => (
+                  <Paper key={sub.sid || index} variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary" fontWeight={500}>Sub Question {index + 1}</Typography>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="error"
+                        onClick={() => removeCreateSub(sub.sid)}
+                        startIcon={<Icon icon="mdi:minus" />}
+                      >
+                        Remove
+                      </Button>
+                    </Box>
 
-                      <div className="space-y-2">
-                        <label className="block text-sm">Answer</label>
-                        <AnswerBlocksEditor
-                          value={sub.answerBlocks}
-                          onChange={(blocks) => updateCreateSub(sub.sid, { answerBlocks: blocks })}
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={4}>
+                        <TextField
+                          label="Sub Part"
+                          size="small"
+                          fullWidth
+                          value={sub.part}
+                          onChange={(e) => updateCreateSub(sub.sid, { part: e.target.value })}
+                          placeholder="a"
                         />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-            <div className="flex gap-2 justify-end">
-              <button onClick={closeCreateModal} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
-              <button disabled={creating} onClick={onCreateSingleQuestion} className="px-4 py-2 rounded bg-gray-900 text-white dark:bg-gray-700 disabled:opacity-60">
-                {creating ? 'Adding...' : 'Add Question'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                      </Grid>
+                    </Grid>
 
-      {deleteConfirm.open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-md p-5 space-y-4">
-            <div className="font-semibold text-lg">Confirm Delete</div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              This will permanently delete all structured questions for:
-            </p>
-            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {deleteConfirm.year} | {String(deleteConfirm.part).toUpperCase()} {deleteConfirm.paper ? `| ${deleteConfirm.paper}` : ""}
-            </div>
-            <p className="text-sm text-red-600">This action cannot be undone.</p>
-            <div className="flex gap-2 justify-end">
-              <button disabled={purging} onClick={closeDeleteConfirm} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
-              <button
-                disabled={purging}
-                onClick={confirmDeleteByYearPart}
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
-              >
-                {purging ? 'Deleting...' : 'Yes, Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                    <Box>
+                      <Typography variant="body2" gutterBottom>Sub Question</Typography>
+                      <RichEditor value={sub.textHtml} onChange={(html) => updateCreateSub(sub.sid, { textHtml: html })} />
+                    </Box>
 
-      {bulkConfirm.open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow w-full max-w-md p-5 space-y-4">
-            <div className="font-semibold text-lg">Confirm Bulk Delete</div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              This will permanently delete all structured questions for {bulkConfirm.groups.length} selected group(s).
-            </p>
-            <div className="max-h-48 overflow-y-auto rounded border border-gray-200 dark:border-gray-700 p-3 text-sm space-y-1">
-              {(bulkConfirm.groups || []).map((g) => (
-                <div key={groupKeyFromGroup(g)} className="text-gray-900 dark:text-gray-100">
-                  {g.year} | {String(g.part).toUpperCase()} {g.paper ? `| ${g.paper}` : ''}
-                </div>
-              ))}
-            </div>
-            <p className="text-sm text-red-600">This action cannot be undone.</p>
-            <div className="flex gap-2 justify-end">
-              <button disabled={purging} onClick={closeBulkConfirm} className="px-4 py-2 rounded border dark:border-gray-600">Cancel</button>
-              <button
-                disabled={purging}
-                onClick={confirmBulkDelete}
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
-              >
-                {purging ? 'Deleting...' : 'Yes, Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+                    <Box>
+                      <Typography variant="body2" gutterBottom>Answer</Typography>
+                      <AnswerBlocksEditor
+                        value={sub.answerBlocks}
+                        onChange={(blocks) => updateCreateSub(sub.sid, { answerBlocks: blocks })}
+                      />
+                    </Box>
+                  </Paper>
+                ))}
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button variant="outlined" onClick={closeCreateModal}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={creating}
+            onClick={onCreateSingleQuestion}
+            startIcon={creating ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:check" />}
+          >
+            {creating ? 'Adding...' : 'Add Question'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog open={deleteConfirm.open} onClose={closeDeleteConfirm} maxWidth="xs" fullWidth>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            This will permanently delete all structured questions for:
+          </Typography>
+          <Typography variant="body2" fontWeight={600}>
+            {deleteConfirm.year} | {String(deleteConfirm.part).toUpperCase()} {deleteConfirm.paper ? `| ${deleteConfirm.paper}` : ''}
+          </Typography>
+          <Alert severity="error">This action cannot be undone.</Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button variant="outlined" disabled={purging} onClick={closeDeleteConfirm}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={purging}
+            onClick={confirmDeleteByYearPart}
+            startIcon={purging ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:delete" />}
+          >
+            {purging ? 'Deleting...' : 'Yes, Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Delete Confirm Dialog */}
+      <Dialog open={bulkConfirm.open} onClose={closeBulkConfirm} maxWidth="xs" fullWidth>
+        <DialogTitle>Confirm Bulk Delete</DialogTitle>
+        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            This will permanently delete all structured questions for {bulkConfirm.groups.length} selected group(s).
+          </Typography>
+          <Paper
+            variant="outlined"
+            sx={{ maxHeight: 192, overflowY: 'auto', p: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}
+          >
+            {(bulkConfirm.groups || []).map((g) => (
+              <Typography key={groupKeyFromGroup(g)} variant="body2">
+                {g.year} | {String(g.part).toUpperCase()} {g.paper ? `| ${g.paper}` : ''}
+              </Typography>
+            ))}
+          </Paper>
+          <Alert severity="error">This action cannot be undone.</Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button variant="outlined" disabled={purging} onClick={closeBulkConfirm}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={purging}
+            onClick={confirmBulkDelete}
+            startIcon={purging ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:delete" />}
+          >
+            {purging ? 'Deleting...' : 'Yes, Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   )
 }
 
@@ -831,8 +959,3 @@ function getSortedGroups(list) {
     return String(a.paper || '').localeCompare(String(b.paper || ''))
   })
 }
-
-
-
-
-
