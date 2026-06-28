@@ -148,32 +148,20 @@ export default function Orders() {
       {/* Filters */}
       <Card sx={{ mb: 4 }}>
         <CardContent>
-          <Grid container spacing={3} alignItems="flex-end">
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
-                <Select label="Status" value={filters.status} onChange={(e) => onChange({ status: e.target.value })}>
-                  {STATUS_OPTIONS.map((s) => <MenuItem key={s || 'all'} value={s}>{s ? formatStatusLabel(s) : 'All'}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <TextField fullWidth size="small" label="Search" placeholder="orderId / paymentId / receipt"
-                value={filters.search} onChange={(e) => onChange({ search: e.target.value })} />
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <TextField fullWidth size="small" label="User ID" value={filters.userId} onChange={(e) => onChange({ userId: e.target.value })} />
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <TextField fullWidth size="small" label="Date From" type="date" InputLabelProps={{ shrink: true }} value={filters.dateFrom} onChange={(e) => onChange({ dateFrom: e.target.value })} />
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <TextField fullWidth size="small" label="Date To" type="date" InputLabelProps={{ shrink: true }} value={filters.dateTo} onChange={(e) => onChange({ dateTo: e.target.value })} />
-            </Grid>
-            <Grid item xs={12} sm={6} md={1}>
-              <Button fullWidth variant="outlined" onClick={() => { setPage(1); setFilters({ status: '', search: '', dateFrom: '', dateTo: '', userId: '', subscriptionId: '' }) }}>Clear</Button>
-            </Grid>
-          </Grid>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>Status</InputLabel>
+              <Select label="Status" value={filters.status} onChange={(e) => onChange({ status: e.target.value })}>
+                {STATUS_OPTIONS.map((s) => <MenuItem key={s || 'all'} value={s}>{s ? formatStatusLabel(s) : 'All'}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <TextField size="small" sx={{ flex: 1, minWidth: 200 }} label="Search" placeholder="orderId / paymentId / receipt"
+              value={filters.search} onChange={(e) => onChange({ search: e.target.value })} />
+            <TextField size="small" sx={{ minWidth: 150 }} label="User ID" value={filters.userId} onChange={(e) => onChange({ userId: e.target.value })} />
+            <TextField size="small" sx={{ minWidth: 140 }} label="From" type="date" InputLabelProps={{ shrink: true }} value={filters.dateFrom} onChange={(e) => onChange({ dateFrom: e.target.value })} />
+            <TextField size="small" sx={{ minWidth: 140 }} label="To" type="date" InputLabelProps={{ shrink: true }} value={filters.dateTo} onChange={(e) => onChange({ dateTo: e.target.value })} />
+            <Button variant="outlined" sx={{ whiteSpace: 'nowrap', flexShrink: 0 }} onClick={() => { setPage(1); setFilters({ status: '', search: '', dateFrom: '', dateTo: '', userId: '', subscriptionId: '' }) }}>Clear</Button>
+          </Box>
         </CardContent>
       </Card>
 

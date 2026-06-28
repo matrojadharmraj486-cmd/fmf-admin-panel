@@ -37,7 +37,6 @@ export function AppLayout({ toggleMode, mode }) {
           onMenuToggle={() => setMobileOpen((v) => !v)}
           toggleMode={toggleMode}
           mode={mode}
-          sidebarWidth={sidebarWidth}
         />
         <Box
           component="main"

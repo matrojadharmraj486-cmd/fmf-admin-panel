@@ -630,14 +630,22 @@ export default function StructuredAdmin() {
           </Box>
 
           {/* Group cards grid */}
-          <Grid container spacing={2}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 2 }}>
             {getSortedGroups(list).map((g) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={groupKeyFromGroup(g)}>
+              <Box key={groupKeyFromGroup(g)}>
                 <Card
-                  sx={{ cursor: 'pointer', position: 'relative', '&:hover': { boxShadow: 4 }, transition: 'box-shadow 0.2s' }}
+                  sx={{
+                    cursor: 'pointer',
+                    position: 'relative',
+                    borderLeft: '4px solid',
+                    borderColor: 'primary.main',
+                    '&:hover': { boxShadow: 6, transform: 'translateY(-2px)' },
+                    transition: 'box-shadow 0.2s, transform 0.2s',
+                    height: '100%',
+                  }}
                   onClick={() => navigate(`/structured-questions/${g.year}/${g.part}${g.paper ? `/${encodeURIComponent(g.paper)}` : ''}`)}
                 >
-                  <CardContent sx={{ pr: 7 }}>
+                  <CardContent sx={{ p: '18px !important', pr: '48px !important', minHeight: 80 }}>
                     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                       <Checkbox
                         size="small"
@@ -652,15 +660,21 @@ export default function StructuredAdmin() {
                             return next
                           })
                         }}
-                        sx={{ mt: -0.5 }}
+                        sx={{ mt: -0.5, p: 0.25 }}
                       />
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="subtitle2" fontWeight={600} noWrap>
-                          {g.year} &bull; {String(g.part).toUpperCase()} {g.paper ? `• ${g.paper}` : ''}
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography variant="subtitle2" fontWeight={700} noWrap sx={{ mb: 0.75, letterSpacing: '0.01em', fontSize: '0.875rem' }}>
+                          {g.year} &bull; {String(g.part).replace('part', 'PART').toUpperCase()}
+                          {g.paper ? <> &bull; Paper {String(g.paper).replace(/^paper\s*/i, '')}</> : null}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {g.countParents} parent &bull; {g.countSubs} sub
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="caption" sx={{ bgcolor: 'primary.main', color: '#fff', px: 1, py: 0.25, borderRadius: 1, fontWeight: 600, fontSize: '0.72rem' }}>
+                            {g.countParents} Q
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                            {g.countSubs} sub-questions
+                          </Typography>
+                        </Box>
                       </Box>
                     </Box>
                   </CardContent>
@@ -668,7 +682,7 @@ export default function StructuredAdmin() {
                     <IconButton
                       size="small"
                       color="error"
-                      sx={{ position: 'absolute', top: 8, right: 8 }}
+                      sx={{ position: 'absolute', top: 6, right: 6 }}
                       onClick={(e) => {
                         e.stopPropagation()
                         setDeleteConfirm({ open: true, year: String(g.year), part: String(g.part), paper: String(g.paper || '') })
@@ -678,9 +692,9 @@ export default function StructuredAdmin() {
                     </IconButton>
                   </Tooltip>
                 </Card>
-              </Grid>
+              </Box>
             ))}
-          </Grid>
+          </Box>
         </Box>
       )}
 

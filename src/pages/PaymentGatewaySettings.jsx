@@ -204,17 +204,17 @@ export default function PaymentGatewaySettings() {
       ) : (
         <Grid container spacing={3} alignItems="flex-start">
           {/* Settings Form */}
-          <Grid item xs={12} lg={6}>
+          <Grid item xs={12} lg={7}>
             <Card>
               <CardContent>
                 <Typography variant="subtitle1" fontWeight={600} gutterBottom>
                   Configuration
                 </Typography>
-                <Divider sx={{ mb: 2 }} />
+                <Divider sx={{ mb: 2.5 }} />
                 <Box component="form" onSubmit={onSave} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                  {/* Gateway + Key row */}
                   <Grid container spacing={2}>
-                    {/* Gateway */}
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={5}>
                       <FormControl fullWidth size="small" disabled>
                         <InputLabel>Payment Gateway</InputLabel>
                         <Select
@@ -230,63 +230,57 @@ export default function PaymentGatewaySettings() {
                       </Typography>
                     </Grid>
 
-                    {/* Key */}
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={7}>
                       <TextField
-                        label="Key"
+                        label="Key *"
                         value={form.key}
                         onChange={(e) => setForm((s) => ({ ...s, key: e.target.value }))}
                         fullWidth
                         size="small"
-                        placeholder="Key"
+                        placeholder="Enter API key"
                         required
-                      />
-                    </Grid>
-
-                    {/* Description */}
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Description"
-                        value={form.description}
-                        onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
-                        fullWidth
-                        size="small"
-                        multiline
-                        minRows={3}
-                        placeholder="e.g. Razorpay live keys for production"
-                      />
-                    </Grid>
-
-                    {/* Secret */}
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Secret"
-                        type="password"
-                        value={form.secret}
-                        onChange={(e) => setForm((s) => ({ ...s, secret: e.target.value }))}
-                        fullWidth
-                        size="small"
-                        placeholder={saved.secretMasked ? saved.secretMasked : 'Enter secret'}
-                        autoComplete="new-password"
-                        helperText="Secret is never shown. Paste a new secret only if you want to rotate it."
+                        inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.85rem' } }}
                       />
                     </Grid>
                   </Grid>
 
-                  {/* Active Toggle */}
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={!!form.isActive}
-                        onChange={(e) => setForm((s) => ({ ...s, isActive: e.target.checked }))}
-                        sx={{
-                          '& .MuiSwitch-switchBase.Mui-checked': { color: '#666CFF' },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#666CFF' }
-                        }}
-                      />
-                    }
-                    label="Active"
+                  {/* Description */}
+                  <TextField
+                    label="Description"
+                    value={form.description}
+                    onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
+                    fullWidth
+                    size="small"
+                    multiline
+                    minRows={2}
+                    placeholder="e.g. Razorpay live keys for production"
                   />
+
+                  {/* Secret */}
+                  <TextField
+                    label="Secret"
+                    type="password"
+                    value={form.secret}
+                    onChange={(e) => setForm((s) => ({ ...s, secret: e.target.value }))}
+                    fullWidth
+                    size="small"
+                    placeholder={saved.secretMasked ? saved.secretMasked : 'Enter secret key'}
+                    autoComplete="new-password"
+                    helperText="Secret is never shown. Paste a new secret only if you want to rotate it."
+                  />
+
+                  {/* Active Toggle */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Switch
+                      checked={!!form.isActive}
+                      onChange={(e) => setForm((s) => ({ ...s, isActive: e.target.checked }))}
+                      sx={{
+                        '& .MuiSwitch-switchBase.Mui-checked': { color: '#666CFF' },
+                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#666CFF' }
+                      }}
+                    />
+                    <Typography variant="body2" fontWeight={500}>Active</Typography>
+                  </Box>
 
                   {/* Actions */}
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 1 }}>
@@ -315,7 +309,7 @@ export default function PaymentGatewaySettings() {
           </Grid>
 
           {/* Saved Details */}
-          <Grid item xs={12} lg={6}>
+          <Grid item xs={12} lg={5}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>

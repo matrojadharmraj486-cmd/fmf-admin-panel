@@ -186,57 +186,37 @@ export default function Testimonials() {
       <Card>
         <CardContent>
           <Box component="form" onSubmit={add} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+            <Grid container spacing={2} alignItems="flex-end">
+              <Grid item xs={12} sm={3}>
                 <Box>
-                  <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
-                    Photo
-                  </Typography>
-                  <input
-                    key={fileInputKey}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setPhoto(e.target.files?.[0] || null)}
-                    style={{ display: 'block' }}
-                  />
+                  <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Photo</Typography>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    fullWidth
+                    startIcon={<Icon icon="mdi:camera-outline" />}
+                    sx={{ textTransform: 'none', height: 40 }}
+                  >
+                    {photo ? (photo.name.length > 18 ? photo.name.slice(0, 18) + '…' : photo.name) : 'Choose Photo'}
+                    <input key={fileInputKey} type="file" accept="image/*" hidden onChange={(e) => setPhoto(e.target.files?.[0] || null)} />
+                  </Button>
                 </Box>
               </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Name"
-                />
+              <Grid item xs={12} sm={3}>
+                <TextField size="small" fullWidth label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
               </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Designation"
-                  value={designation}
-                  onChange={(e) => setDesignation(e.target.value)}
-                  placeholder="Designation"
-                />
+              <Grid item xs={12} sm={3}>
+                <TextField size="small" fullWidth label="Designation" value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="Designation" />
               </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Location"
-                />
+              <Grid item xs={12} sm={3}>
+                <TextField size="small" fullWidth label="Location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location" />
               </Grid>
               <Grid item xs={12}>
                 <TextField
                   size="small"
                   fullWidth
                   multiline
-                  rows={4}
+                  rows={3}
                   label="Review"
                   value={review}
                   onChange={(e) => setReview(e.target.value)}
@@ -322,65 +302,35 @@ export default function Testimonials() {
         <Box component="form" onSubmit={saveEdit}>
           <DialogTitle>Edit Testimonial</DialogTitle>
           <DialogContent dividers>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Box>
-                    <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
-                      Photo (optional — leave empty to keep existing)
-                    </Typography>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setEditPhoto(e.target.files?.[0] || null)}
-                      style={{ display: 'block' }}
-                    />
-                  </Box>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    size="small"
+            <Grid container spacing={2} alignItems="flex-end" sx={{ pt: 1 }}>
+              <Grid item xs={12} sm={3}>
+                <Box>
+                  <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Photo (optional)</Typography>
+                  <Button
+                    variant="outlined"
+                    component="label"
                     fullWidth
-                    label="Name"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Name"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    size="small"
-                    fullWidth
-                    label="Designation"
-                    value={editDesignation}
-                    onChange={(e) => setEditDesignation(e.target.value)}
-                    placeholder="Designation"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    size="small"
-                    fullWidth
-                    label="Location"
-                    value={editLocation}
-                    onChange={(e) => setEditLocation(e.target.value)}
-                    placeholder="Location"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    size="small"
-                    fullWidth
-                    multiline
-                    rows={4}
-                    label="Review"
-                    value={editReview}
-                    onChange={(e) => setEditReview(e.target.value)}
-                    placeholder="Review"
-                  />
-                </Grid>
+                    startIcon={<Icon icon="mdi:camera-outline" />}
+                    sx={{ textTransform: 'none', height: 40 }}
+                  >
+                    {editPhoto ? (editPhoto.name.length > 16 ? editPhoto.name.slice(0, 16) + '…' : editPhoto.name) : 'Choose Photo'}
+                    <input type="file" accept="image/*" hidden onChange={(e) => setEditPhoto(e.target.files?.[0] || null)} />
+                  </Button>
+                </Box>
               </Grid>
-            </Box>
+              <Grid item xs={12} sm={3}>
+                <TextField size="small" fullWidth label="Name" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Name" />
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <TextField size="small" fullWidth label="Designation" value={editDesignation} onChange={(e) => setEditDesignation(e.target.value)} placeholder="Designation" />
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <TextField size="small" fullWidth label="Location" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} placeholder="Location" />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField size="small" fullWidth multiline rows={3} label="Review" value={editReview} onChange={(e) => setEditReview(e.target.value)} placeholder="Review" />
+              </Grid>
+            </Grid>
           </DialogContent>
           <DialogActions sx={{ px: 3, py: 2 }}>
             <Button onClick={closeEdit} variant="outlined">

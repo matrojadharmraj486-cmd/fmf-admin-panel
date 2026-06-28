@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   Box, Drawer, List, ListItem, ListItemButton, ListItemIcon,
-  ListItemText, Typography, Divider, Tooltip, IconButton, alpha
+  ListItemText, Typography, Tooltip, IconButton, alpha
 } from '@mui/material'
 import { Icon } from '@iconify/react'
 import { SIDEBAR_WIDTH_PX, SIDEBAR_COLLAPSED_WIDTH_PX } from '../theme/index.js'
@@ -109,8 +109,11 @@ function SidebarContent({ collapsed, onToggleCollapse, onClose }) {
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'space-between',
           px: collapsed ? 1 : 3,
-          py: 3,
+          py: 0,
           minHeight: 64,
+          height: 64,
+          flexShrink: 0,
+          borderBottom: '1px solid rgba(231,227,252,0.08)',
         }}
       >
         {!collapsed && (
@@ -166,8 +169,6 @@ function SidebarContent({ collapsed, onToggleCollapse, onClose }) {
           </IconButton>
         )}
       </Box>
-
-      <Divider sx={{ borderColor: 'rgba(231,227,252,0.08)', mx: collapsed ? 1 : 2 }} />
 
       {/* Navigation */}
       <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', py: 2, px: collapsed ? 0.5 : 1.5 }}>

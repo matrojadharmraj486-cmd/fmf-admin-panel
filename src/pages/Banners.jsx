@@ -296,121 +296,105 @@ export default function Banners() {
       {/* Add Banner Form */}
       <Card>
         <CardContent>
-          <Box component="form" onSubmit={add} sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-start" }}>
-            {/* Source Type Radio */}
-            <FormControl component="fieldset">
-              <FormLabel component="legend" sx={{ fontSize: "0.75rem" }}>Image Source</FormLabel>
-              <RadioGroup
-                row
-                name="sourceType"
-                value={sourceType}
-                onChange={(e) => setSourceType(e.target.value)}
-              >
-                <FormControlLabel value="file" control={<Radio size="small" />} label="Upload file" />
-                <FormControlLabel value="link" control={<Radio size="small" />} label="Image link" />
-              </RadioGroup>
-            </FormControl>
+          <Box component="form" onSubmit={add} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            {/* Row 1: Image source + file/url + type + position */}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'flex-end' }}>
+              <FormControl component="fieldset" sx={{ flexShrink: 0 }}>
+                <FormLabel component="legend" sx={{ fontSize: '0.75rem', mb: 0.5 }}>Image Source</FormLabel>
+                <RadioGroup row name="sourceType" value={sourceType} onChange={(e) => setSourceType(e.target.value)}>
+                  <FormControlLabel value="file" control={<Radio size="small" />} label="Upload file" />
+                  <FormControlLabel value="link" control={<Radio size="small" />} label="Image link" />
+                </RadioGroup>
+              </FormControl>
 
-            {/* File or URL input */}
-            {sourceType === "file" ? (
-              <Box>
-                <input
-                  key={fileInputKey}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  style={{ display: "block", marginTop: 8 }}
-                />
+              <Box sx={{ flex: 1, minWidth: 180 }}>
+                {sourceType === "file" ? (
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    fullWidth
+                    startIcon={<Icon icon="mdi:file-image-outline" />}
+                    sx={{ justifyContent: 'flex-start', textTransform: 'none' }}
+                  >
+                    {file ? (file.name.length > 22 ? file.name.slice(0, 22) + '…' : file.name) : 'Choose Image'}
+                    <input key={fileInputKey} type="file" accept="image/*" hidden onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                  </Button>
+                ) : (
+                  <TextField
+                    size="small"
+                    fullWidth
+                    type="url"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="https://example.com/banner.jpg"
+                    label="Image URL"
+                  />
+                )}
               </Box>
-            ) : (
-              <TextField
-                size="small"
-                type="url"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://example.com/banner.jpg"
-                label="Image URL"
-                sx={{ minWidth: 260 }}
-              />
-            )}
 
-            {/* Banner Type */}
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Banner Type</InputLabel>
-              <Select
-                value={bannerType}
-                label="Banner Type"
-                onChange={(e) => setBannerType(e.target.value)}
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel>Banner Type</InputLabel>
+                <Select value={bannerType} label="Banner Type" onChange={(e) => setBannerType(e.target.value)}>
+                  <MenuItem value="">Select type</MenuItem>
+                  {bannerTypeOptions.map((type) => (
+                    <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl size="small" sx={{ minWidth: 140 }}>
+                <InputLabel>Position</InputLabel>
+                <Select value={bannerPosition} label="Position" onChange={(e) => setBannerPosition(e.target.value)}>
+                  <MenuItem value="">Select</MenuItem>
+                  {bannerPositionOptions.map((position) => (
+                    <MenuItem key={position} value={position}>Position {position}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Row 2: Redirection Route + optional External URL + Upload button */}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+              <FormControl size="small" sx={{ flex: 1, minWidth: 200 }}>
+                <InputLabel>Redirection Route</InputLabel>
+                <Select
+                  value={routeChoice}
+                  label="Redirection Route"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setRouteChoice(val);
+                    if (val && val !== "other") setRedirectionUrl(val);
+                    if (val === "other") setRedirectionUrl("");
+                  }}
+                >
+                  <MenuItem value="">Select redirection route</MenuItem>
+                  {routeOptions.map((r) => (
+                    <MenuItem key={r.value} value={r.value}>{r.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {routeChoice === "other" && (
+                <TextField
+                  size="small"
+                  sx={{ flex: 1, minWidth: 200 }}
+                  value={redirectionUrl}
+                  onChange={(e) => setRedirectionUrl(e.target.value)}
+                  placeholder="https://example.com or /custom-path"
+                  label="External URL"
+                />
+              )}
+
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={uploading}
+                startIcon={uploading ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:upload" />}
+                sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
               >
-                <MenuItem value="">Select banner type</MenuItem>
-                {bannerTypeOptions.map((type) => (
-                  <MenuItem key={type.value} value={type.value}>
-                    {type.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Banner Position */}
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel>Position</InputLabel>
-              <Select
-                value={bannerPosition}
-                label="Position"
-                onChange={(e) => setBannerPosition(e.target.value)}
-              >
-                <MenuItem value="">Select position</MenuItem>
-                {bannerPositionOptions.map((position) => (
-                  <MenuItem key={position} value={position}>
-                    Position {position}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Redirection Route */}
-            <FormControl size="small" sx={{ minWidth: 260 }}>
-              <InputLabel>Redirection Route</InputLabel>
-              <Select
-                value={routeChoice}
-                label="Redirection Route"
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setRouteChoice(val);
-                  if (val && val !== "other") setRedirectionUrl(val);
-                  if (val === "other") setRedirectionUrl("");
-                }}
-              >
-                <MenuItem value="">Select redirection route</MenuItem>
-                {routeOptions.map((r) => (
-                  <MenuItem key={r.value} value={r.value}>
-                    {r.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* External URL input */}
-            {routeChoice === "other" && (
-              <TextField
-                size="small"
-                value={redirectionUrl}
-                onChange={(e) => setRedirectionUrl(e.target.value)}
-                placeholder="https://example.com or /custom-path"
-                label="External URL"
-                sx={{ minWidth: 260, flex: 1 }}
-              />
-            )}
-
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={uploading}
-              startIcon={uploading ? <CircularProgress size={16} color="inherit" /> : <Icon icon="mdi:upload" />}
-              sx={{ alignSelf: "center" }}
-            >
-              {uploading ? "Uploading..." : "Upload"}
-            </Button>
+                {uploading ? "Uploading..." : "Upload"}
+              </Button>
+            </Box>
           </Box>
         </CardContent>
       </Card>
@@ -532,14 +516,15 @@ export default function Banners() {
               </FormControl>
 
               {editSourceType === "file" && (
-                <Box>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setEditFile(e.target.files?.[0] || null)}
-                    style={{ display: "block" }}
-                  />
-                </Box>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  startIcon={<Icon icon="mdi:file-image-outline" />}
+                  sx={{ justifyContent: 'flex-start', textTransform: 'none' }}
+                >
+                  {editFile ? (editFile.name.length > 22 ? editFile.name.slice(0, 22) + '…' : editFile.name) : 'Choose Image'}
+                  <input type="file" accept="image/*" hidden onChange={(e) => setEditFile(e.target.files?.[0] || null)} />
+                </Button>
               )}
 
               {editSourceType === "link" && (
@@ -624,16 +609,14 @@ export default function Banners() {
               )}
 
               {/* Active Toggle */}
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={editIsActive}
-                    onChange={(e) => setEditIsActive(e.target.checked)}
-                    color="primary"
-                  />
-                }
-                label="Active"
-              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Switch
+                  checked={editIsActive}
+                  onChange={(e) => setEditIsActive(e.target.checked)}
+                  color="primary"
+                />
+                <Typography variant="body2" fontWeight={500}>Active</Typography>
+              </Box>
             </Box>
           </DialogContent>
           <DialogActions sx={{ px: 3, py: 2 }}>

@@ -450,16 +450,14 @@ export default function Subscriptions() {
                 />
               </Grid>
               <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={form.isActive}
-                      onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                      color="primary"
-                    />
-                  }
-                  label="Active"
-                />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Switch
+                    checked={form.isActive}
+                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+                    color="primary"
+                  />
+                  <Typography variant="body2" fontWeight={500}>Active</Typography>
+                </Box>
               </Grid>
             </Grid>
           </DialogContent>

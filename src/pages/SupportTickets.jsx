@@ -218,81 +218,71 @@ export default function SupportTickets() {
       {/* Filters */}
       <Card>
         <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6} md={3} lg={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={filters.status}
-                  label="Status"
-                  onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
-                >
-                  <MenuItem value="">All Statuses</MenuItem>
-                  {STATUS_OPTIONS.map((status) => (
-                    <MenuItem key={status} value={status}>{formatLabel(status)}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3} lg={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={filters.category}
-                  label="Category"
-                  onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
-                >
-                  <MenuItem value="">All Categories</MenuItem>
-                  {categories.filter(Boolean).map((category) => (
-                    <MenuItem key={category} value={category}>{category}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3} lg={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Priority</InputLabel>
-                <Select
-                  value={filters.priority}
-                  label="Priority"
-                  onChange={(e) => setFilters((prev) => ({ ...prev, priority: e.target.value }))}
-                >
-                  <MenuItem value="">All Priorities</MenuItem>
-                  {PRIORITY_OPTIONS.filter(Boolean).map((priority) => (
-                    <MenuItem key={priority} value={priority}>{formatLabel(priority)}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3} lg={4}>
-              <TextField
-                fullWidth
-                size="small"
-                value={filters.search}
-                onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
-                placeholder="Search ticket no / subject / description"
-                InputProps={{
-                  startAdornment: <Icon icon="mdi:magnify" style={{ marginRight: 6, color: '#888' }} />
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3} lg={2}>
-              <Button
-                fullWidth
-                variant="contained"
-                color="error"
-                disabled={selectedIds.length === 0}
-                onClick={() => setBulkConfirm({ open: true })}
-                startIcon={<Icon icon="mdi:delete-outline" />}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={filters.status}
+                label="Status"
+                onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
               >
-                Delete{selectedIds.length ? ` (${selectedIds.length})` : ' Selected'}
-              </Button>
-            </Grid>
-          </Grid>
+                <MenuItem value="">All Statuses</MenuItem>
+                {STATUS_OPTIONS.map((status) => (
+                  <MenuItem key={status} value={status}>{formatLabel(status)}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={filters.category}
+                label="Category"
+                onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
+              >
+                <MenuItem value="">All Categories</MenuItem>
+                {categories.filter(Boolean).map((category) => (
+                  <MenuItem key={category} value={category}>{category}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Priority</InputLabel>
+              <Select
+                value={filters.priority}
+                label="Priority"
+                onChange={(e) => setFilters((prev) => ({ ...prev, priority: e.target.value }))}
+              >
+                <MenuItem value="">All Priorities</MenuItem>
+                {PRIORITY_OPTIONS.filter(Boolean).map((priority) => (
+                  <MenuItem key={priority} value={priority}>{formatLabel(priority)}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <TextField
+              size="small"
+              sx={{ flex: 1, minWidth: 220 }}
+              value={filters.search}
+              onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
+              placeholder="Search ticket no / subject / description"
+              InputProps={{
+                startAdornment: <Icon icon="mdi:magnify" style={{ marginRight: 6, color: '#888' }} />
+              }}
+            />
+
+            <Button
+              variant="contained"
+              color="error"
+              disabled={selectedIds.length === 0}
+              onClick={() => setBulkConfirm({ open: true })}
+              startIcon={<Icon icon="mdi:delete-outline" />}
+              sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+            >
+              Delete{selectedIds.length ? ` (${selectedIds.length})` : ' Selected'}
+            </Button>
+          </Box>
         </CardContent>
       </Card>
 

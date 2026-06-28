@@ -156,7 +156,39 @@ const getComponentOverrides = (mode) => ({
     },
   },
   MuiSwitch: {
-    styleOverrides: { root: { width: 36, height: 20, padding: 0 } },
+    defaultProps: { color: 'primary' },
+    styleOverrides: {
+      root: ({ theme }) => ({
+        width: 40,
+        height: 22,
+        padding: 0,
+        flexShrink: 0,
+        '& .MuiSwitch-switchBase': {
+          padding: 3,
+          transition: 'transform 0.15s ease-in-out',
+          '&.Mui-checked': {
+            transform: 'translateX(18px)',
+            color: '#fff',
+            '& + .MuiSwitch-track': {
+              backgroundColor: theme.palette.primary.main,
+              opacity: 1,
+            },
+          },
+        },
+        '& .MuiSwitch-thumb': {
+          width: 16,
+          height: 16,
+          borderRadius: '50%',
+          boxShadow: 'none',
+          backgroundColor: 'currentColor',
+        },
+        '& .MuiSwitch-track': {
+          borderRadius: 11,
+          backgroundColor: mode === 'dark' ? 'rgba(231,227,252,0.26)' : 'rgba(47,51,73,0.26)',
+          opacity: 1,
+        },
+      }),
+    },
   },
   MuiAvatar: {
     styleOverrides: { root: { fontWeight: 600 } },

@@ -1,13 +1,12 @@
 import {
-  AppBar, Toolbar, IconButton, Box, Typography, Avatar,
-  Tooltip, Menu, MenuItem, Divider, useTheme, alpha
+  AppBar, Toolbar, IconButton, Box, Avatar,
+  Tooltip, Menu, MenuItem, Divider, useTheme, alpha, Typography
 } from '@mui/material'
 import { Icon } from '@iconify/react'
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { SIDEBAR_WIDTH_PX } from '../theme/index.js'
 
-export function Topbar({ onMenuToggle, toggleMode, mode, sidebarWidth }) {
+export function Topbar({ onMenuToggle, toggleMode, mode }) {
   const { user, logout } = useAuth()
   const theme = useTheme()
   const [anchorEl, setAnchorEl] = useState(null)
@@ -23,10 +22,6 @@ export function Topbar({ onMenuToggle, toggleMode, mode, sidebarWidth }) {
       position="sticky"
       elevation={0}
       sx={{
-        zIndex: (t) => t.zIndex.drawer - 1,
-        width: { lg: `calc(100% - ${sidebarWidth}px)` },
-        ml: { lg: `${sidebarWidth}px` },
-        transition: 'width 0.25s ease, margin-left 0.25s ease',
         bgcolor: isDark
           ? alpha(theme.palette.background.paper, 0.85)
           : alpha('#FFFFFF', 0.85),
