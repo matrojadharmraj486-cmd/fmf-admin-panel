@@ -7,7 +7,7 @@ export function AnswerBlocksEditor({ value = [], onChange }) {
   const fileRef = useRef(null)
 
   const blocks = useMemo(() => Array.isArray(value) ? value : [], [value])
-  const baseUrl = import.meta?.env?.VITE_API_BASE_URL || api?.defaults?.baseURL || ''
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || api?.defaults?.baseURL || ''
 
   const abs = (url) => {
     if (!url) return ''

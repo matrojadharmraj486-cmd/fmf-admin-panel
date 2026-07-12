@@ -67,7 +67,7 @@ export default function StructuredDetail() {
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null, title: '' })
   const [qotdSavingId, setQotdSavingId] = useState(null)
 
-  const baseUrl = import.meta?.env?.VITE_API_BASE_URL || api?.defaults?.baseURL || ''
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || api?.defaults?.baseURL || ''
   const abs = (url) => {
     if (!url) return ''
     const s = String(url)

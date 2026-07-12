@@ -2,7 +2,7 @@ import axios from 'axios'
 import { getToken } from './authStorage'
 
 export const api = axios.create({
-  baseURL: import.meta?.env?.VITE_API_BASE_URL || 'https://fmf-backend.onrender.com',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://fmf-backend.onrender.com',
   timeout: 20000
 })
 

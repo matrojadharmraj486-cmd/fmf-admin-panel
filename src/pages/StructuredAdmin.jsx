@@ -87,7 +87,7 @@ export default function StructuredAdmin() {
     subs: [{ sid: 'sub-1', part: 'a', textHtml: '', answerBlocks: [] }]
   })
   const toArray = (x) => Array.isArray(x) ? x : Array.isArray(x?.data) ? x.data : Array.isArray(x?.data?.data) ? x.data.data : []
-  const baseUrl = import.meta?.env?.VITE_API_BASE_URL || ''
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
   const canonicalPart = (val) => {
     const s = String(val || '').toLowerCase().replace(/\s+/g, '')
     if (s.includes('part2') || s === '2' || /2$/.test(s)) return 'part2'

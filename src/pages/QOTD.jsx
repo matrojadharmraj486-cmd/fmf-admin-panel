@@ -12,7 +12,7 @@ export default function Qotd() {
   const [current, setCurrent] = useState(null)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ question: '', answerType: 'text', answerHtml: '', answerImage: null })
-  const baseUrl = import.meta?.env?.VITE_API_BASE_URL || ''
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
   const abs = (url) => {
     if (!url) return ''
     const s = String(url)

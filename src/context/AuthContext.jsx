@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
     if (!email || !password) throw new Error('Missing credentials')
     // Call backend login
     const res = await loginAdmin(email, password)
-    const allowed = import.meta?.env?.VITE_ADMIN_EMAIL
+    const allowed = import.meta.env.VITE_ADMIN_EMAIL
     if (allowed && res?.user?.email && res.user.email.toLowerCase() !== allowed.toLowerCase()) {
       throw new Error('Not authorized for admin panel')
     }

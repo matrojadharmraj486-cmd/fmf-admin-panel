@@ -28,8 +28,8 @@ const STAT_CARDS = [
 export default function Dashboard() {
   const theme = useTheme()
   const isDark = theme.palette.mode === 'dark'
-  const pollMs = Number(import.meta?.env?.VITE_DASHBOARD_POLL_MS || 30000)
-  const months = Number(import.meta?.env?.VITE_DASHBOARD_MONTHS || 12)
+  const pollMs = Number(import.meta.env.VITE_DASHBOARD_POLL_MS || 30000)
+  const months = Number(import.meta.env.VITE_DASHBOARD_MONTHS || 12)
   const [stats, setStats] = useState(null)
   const [points, setPoints] = useState([])
   const [loading, setLoading] = useState(true)
