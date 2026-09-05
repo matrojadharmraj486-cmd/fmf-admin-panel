@@ -67,8 +67,12 @@ export const getDashboardTimeseries = async (params = {}) => {
 // Users
 export const listUsers = async (qOrParams = '') => {
   const params = (qOrParams && typeof qOrParams === 'object')
-    ? (qOrParams || {})
+    ? { ...qOrParams }
     : { q: qOrParams }
+  // An empty `q` still makes the backend switch into pagination mode (default
+  // limit 20). The admin table paginates client-side, so drop empty params and
+  // let the backend return the full user list.
+  if (params.q === '' || params.q == null) delete params.q
   const { data } = await api.get('/api/admin/users', { params })
   return data
 }

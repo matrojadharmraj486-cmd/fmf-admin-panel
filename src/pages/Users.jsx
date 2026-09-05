@@ -98,7 +98,8 @@ export default function Users() {
   }, [isSomeVisibleSelected])
 
   const refetchUsers = async () => {
-    const res = await apiList({ q: query || '' })
+    // Load the full list; the table filters/paginates client-side.
+    const res = await apiList({})
     setList(extractUsers(res))
   }
 
