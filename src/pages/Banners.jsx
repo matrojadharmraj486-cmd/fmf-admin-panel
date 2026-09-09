@@ -447,14 +447,14 @@ export default function Banners() {
         <Grid container spacing={2}>
           {items.map((b) => (
             <Grid key={b._id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-              <Card sx={{ overflow: "hidden" }}>
+              <Card sx={{ overflow: "hidden", height: "100%", display: "flex", flexDirection: "column" }}>
                 <Box
                   component="img"
                   src={b.image || b.imageUrl}
                   alt="banner"
-                  sx={{ width: "100%", height: 160, objectFit: "cover", display: "block" }}
+                  sx={{ width: "100%", height: 160, objectFit: "cover", display: "block", flexShrink: 0 }}
                 />
-                <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+                <CardContent sx={{ p: 1.5, flex: 1, "&:last-child": { pb: 1.5 } }}>
                   <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
                     <Box>
                       <Typography variant="caption" color="text.secondary" display="block">

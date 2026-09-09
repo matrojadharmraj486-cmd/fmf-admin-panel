@@ -47,6 +47,18 @@ html, body, #root {
   color: rgba(231, 227, 252, 0.87);
 }
 
+/* Safety net for Quill toolbar icons. An <svg> without width/height attributes
+   falls back to the CSS default replaced-element size (300x150), so if the base
+   quill.snow styles ever fail to apply the toolbar pickers render as huge shapes.
+   The extra .fmf-rich-editor prefix keeps this above Quill's own selectors. */
+.fmf-rich-editor .ql-snow.ql-toolbar button svg,
+.fmf-rich-editor .ql-snow .ql-toolbar button svg,
+.fmf-rich-editor .ql-snow .ql-picker-label svg,
+.fmf-rich-editor .ql-toolbar svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 5px;

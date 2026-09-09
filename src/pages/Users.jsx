@@ -643,12 +643,13 @@ function getPaymentPlan(p) { return p?.planName || p?.plan || p?.productName || 
 function getPaymentCreatedAt(p) { return p?.createdAt || p?.created_at || p?.date || p?.paidAt || p?.updatedAt || '' }
 function formatAny(v) { if (v === null || typeof v === 'undefined') return '-'; const s = String(v).trim(); return s ? s : '-' }
 function formatAmount(p) {
+  // Payment amounts are stored in paise (₹1 = 100 paise); convert to rupees for display.
   const amount = p?.amount ?? p?.price ?? p?.total ?? p?.value ?? ''
   const currency = p?.currency || p?.currencyCode || 'INR'
   if (amount === null || typeof amount === 'undefined' || amount === '') return '-'
   const n = Number(amount)
   if (!Number.isFinite(n)) return String(amount)
-  return `${n} ${currency}`
+  return `${(n / 100).toFixed(2)} ${currency}`
 }
 function formatDate(value) {
   if (!value) return '-'

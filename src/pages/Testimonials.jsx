@@ -275,7 +275,17 @@ export default function Testimonials() {
                   <Typography variant="body2" color="text.secondary">
                     {t.designation}{t.location ? ` • ${t.location}` : ''}
                   </Typography>
-                  <Typography variant="body2" color="text.primary" sx={{ flex: 1 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.primary"
+                    sx={{
+                      flex: 1,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 4,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
                     {t.review}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: 1 }}>

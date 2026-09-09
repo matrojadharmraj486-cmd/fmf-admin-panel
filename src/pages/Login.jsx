@@ -94,51 +94,61 @@ export default function Login() {
             )}
 
             <Box component="form" onSubmit={onSubmit} noValidate>
-              <TextField
-                label="Email"
-                type="email"
-                fullWidth
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Icon icon="mdi:email-outline" fontSize={20} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ mb: 3 }}
-              />
-              <TextField
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                fullWidth
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Icon icon="mdi:lock-outline" fontSize={20} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword((v) => !v)}
-                        edge="end"
-                        size="small"
-                      >
-                        <Icon icon={showPassword ? 'mdi:eye-off-outline' : 'mdi:eye-outline'} fontSize={20} />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ mb: 4 }}
-              />
+              <Box sx={{ mb: 3 }}>
+                <Typography
+                  component="label"
+                  htmlFor="login-email"
+                  variant="body2"
+                  fontWeight={600}
+                  sx={{ display: 'block', mb: 1, color: 'text.primary' }}
+                >
+                  Email
+                </Typography>
+                <TextField
+                  id="login-email"
+                  type="email"
+                  fullWidth
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  placeholder="Enter your email"
+                />
+              </Box>
+              <Box sx={{ mb: 4 }}>
+                <Typography
+                  component="label"
+                  htmlFor="login-password"
+                  variant="body2"
+                  fontWeight={600}
+                  sx={{ display: 'block', mb: 1, color: 'text.primary' }}
+                >
+                  Password
+                </Typography>
+                <TextField
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  fullWidth
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword((v) => !v)}
+                          edge="end"
+                          size="small"
+                        >
+                          <Icon icon={showPassword ? 'mdi:eye-off-outline' : 'mdi:eye-outline'} fontSize={20} />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
               <Button
                 type="submit"
                 variant="contained"
