@@ -187,7 +187,7 @@ export default function Testimonials() {
         <CardContent>
           <Box component="form" onSubmit={add} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Grid container spacing={2} alignItems="flex-end">
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <Box>
                   <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Photo</Typography>
                   <Button
@@ -202,16 +202,16 @@ export default function Testimonials() {
                   </Button>
                 </Box>
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <TextField size="small" fullWidth label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <TextField size="small" fullWidth label="Designation" value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="Designation" />
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <TextField size="small" fullWidth label="Location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location" />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   size="small"
                   fullWidth
@@ -260,7 +260,7 @@ export default function Testimonials() {
       ) : (
         <Grid container spacing={2}>
           {items.map((t) => (
-            <Grid item key={t._id || t.id} xs={12} sm={6} lg={4}>
+            <Grid key={t._id || t.id} size={{ xs: 12, sm: 6, lg: 4 }}>
               <Card sx={{ overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <Box sx={{ height: 160, bgcolor: 'action.hover', overflow: 'hidden' }}>
                   <Box
@@ -303,7 +303,7 @@ export default function Testimonials() {
           <DialogTitle>Edit Testimonial</DialogTitle>
           <DialogContent dividers>
             <Grid container spacing={2} alignItems="flex-end" sx={{ pt: 1 }}>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <Box>
                   <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Photo (optional)</Typography>
                   <Button
@@ -318,16 +318,16 @@ export default function Testimonials() {
                   </Button>
                 </Box>
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <TextField size="small" fullWidth label="Name" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Name" />
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <TextField size="small" fullWidth label="Designation" value={editDesignation} onChange={(e) => setEditDesignation(e.target.value)} placeholder="Designation" />
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <TextField size="small" fullWidth label="Location" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} placeholder="Location" />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField size="small" fullWidth multiline rows={3} label="Review" value={editReview} onChange={(e) => setEditReview(e.target.value)} placeholder="Review" />
               </Grid>
             </Grid>

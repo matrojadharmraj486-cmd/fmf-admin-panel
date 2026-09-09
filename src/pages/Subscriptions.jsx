@@ -370,7 +370,7 @@ export default function Subscriptions() {
           </DialogTitle>
           <DialogContent dividers>
             <Grid container spacing={2} sx={{ mt: 0 }}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Name"
                   value={form.name}
@@ -380,7 +380,7 @@ export default function Subscriptions() {
                   required
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Currency"
                   value={form.currency}
@@ -390,7 +390,7 @@ export default function Subscriptions() {
                   fullWidth
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Base Price"
                   type="number"
@@ -402,7 +402,7 @@ export default function Subscriptions() {
                   required
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <FormControl size="small" fullWidth>
                   <InputLabel>GST %</InputLabel>
                   <Select
@@ -416,7 +416,7 @@ export default function Subscriptions() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   label="Total Plan Price (INR)"
                   value={`INR ${Number.isFinite(totalPlanPrice) ? totalPlanPrice.toFixed(2) : '0.00'}`}
@@ -426,7 +426,7 @@ export default function Subscriptions() {
                   sx={{ bgcolor: 'action.hover', borderRadius: 1 }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Duration (days)"
                   type="number"
@@ -438,7 +438,7 @@ export default function Subscriptions() {
                   required
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   label="Description"
                   value={form.description}
@@ -449,7 +449,7 @@ export default function Subscriptions() {
                   fullWidth
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                   <Switch
                     checked={form.isActive}

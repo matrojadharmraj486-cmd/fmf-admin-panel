@@ -413,25 +413,25 @@ export default function SupportTickets() {
           {selectedTicket && (
             <Grid container spacing={3}>
               {/* Left Column */}
-              <Grid item xs={12} lg={7}>
+              <Grid size={{ xs: 12, lg: 7 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {/* Ticket Meta */}
                   <Card variant="outlined">
                     <CardContent>
                       <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                           <DetailField label="Category" value={getCategory(selectedTicket)} />
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                           <DetailField label="Priority" value={formatLabel(getPriority(selectedTicket))} />
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                           <DetailField label="Current Status" value={<StatusBadge status={getStatus(selectedTicket)} />} />
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                           <DetailField label="Created Date" value={formatDate(getCreatedAt(selectedTicket))} />
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                           <DetailField label="Updated Date" value={formatDate(getUpdatedAt(selectedTicket))} />
                         </Grid>
                       </Grid>
@@ -473,7 +473,7 @@ export default function SupportTickets() {
               </Grid>
 
               {/* Right Column */}
-              <Grid item xs={12} lg={5}>
+              <Grid size={{ xs: 12, lg: 5 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {/* User Info */}
                   <Card variant="outlined">

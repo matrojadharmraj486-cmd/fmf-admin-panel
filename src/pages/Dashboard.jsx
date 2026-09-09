@@ -195,7 +195,7 @@ export default function Dashboard() {
       {/* Stat Cards */}
       <Grid container spacing={6} sx={{ mb: 6 }}>
         {STAT_CARDS.map(({ key, label, icon, color }) => (
-          <Grid item xs={12} sm={6} lg={3} key={key}>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={key}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>

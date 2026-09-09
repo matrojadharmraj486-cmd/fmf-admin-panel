@@ -703,7 +703,7 @@ export default function StructuredAdmin() {
         <DialogTitle>Add Structured Question</DialogTitle>
         <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Year</InputLabel>
                 <Select
@@ -726,7 +726,7 @@ export default function StructuredAdmin() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Part</InputLabel>
                 <Select
@@ -740,7 +740,7 @@ export default function StructuredAdmin() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <FormControl fullWidth size="small" disabled={!createForm.part || !createForm.year}>
                 <InputLabel>Paper (optional)</InputLabel>
                 <Select
@@ -757,7 +757,7 @@ export default function StructuredAdmin() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Box sx={{ pt: 0.5 }}>
                 <Typography variant="body2" gutterBottom>Question Type</Typography>
                 <FormControlLabel
@@ -827,7 +827,7 @@ export default function StructuredAdmin() {
                     </Box>
 
                     <Grid container spacing={2}>
-                      <Grid item xs={12} md={4}>
+                      <Grid size={{ xs: 12, md: 4 }}>
                         <TextField
                           label="Sub Part"
                           size="small"

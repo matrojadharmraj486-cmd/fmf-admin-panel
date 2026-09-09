@@ -228,7 +228,7 @@ export default function Faqs() {
         <CardContent>
           <Box component="form" onSubmit={onCreate} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             <Grid container spacing={2} alignItems="flex-start">
-              <Grid item xs={12} md={8}>
+              <Grid size={{ xs: 12, md: 8 }}>
                 <TextField
                   size="small"
                   fullWidth
@@ -238,7 +238,7 @@ export default function Faqs() {
                   placeholder="Enter FAQ question"
                 />
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <FormControl size="small" fullWidth>
                   <InputLabel>Visible in App</InputLabel>
                   <Select
@@ -408,7 +408,7 @@ export default function Faqs() {
         <DialogContent dividers>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
             <Grid container spacing={2} alignItems="flex-start">
-              <Grid item xs={12} md={8}>
+              <Grid size={{ xs: 12, md: 8 }}>
                 <TextField
                   size="small"
                   fullWidth
@@ -417,7 +417,7 @@ export default function Faqs() {
                   onChange={(e) => setEditQuestion(e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <FormControl size="small" fullWidth>
                   <InputLabel>Visible in App</InputLabel>
                   <Select

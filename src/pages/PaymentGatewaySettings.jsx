@@ -204,7 +204,7 @@ export default function PaymentGatewaySettings() {
       ) : (
         <Grid container spacing={3} alignItems="flex-start">
           {/* Settings Form */}
-          <Grid item xs={12} lg={7}>
+          <Grid size={{ xs: 12, lg: 7 }}>
             <Card>
               <CardContent>
                 <Typography variant="subtitle1" fontWeight={600} gutterBottom>
@@ -214,7 +214,7 @@ export default function PaymentGatewaySettings() {
                 <Box component="form" onSubmit={onSave} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                   {/* Gateway + Key row */}
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={5}>
+                    <Grid size={{ xs: 12, sm: 5 }}>
                       <FormControl fullWidth size="small" disabled>
                         <InputLabel>Payment Gateway</InputLabel>
                         <Select
@@ -230,7 +230,7 @@ export default function PaymentGatewaySettings() {
                       </Typography>
                     </Grid>
 
-                    <Grid item xs={12} sm={7}>
+                    <Grid size={{ xs: 12, sm: 7 }}>
                       <TextField
                         label="Key *"
                         value={form.key}
@@ -309,7 +309,7 @@ export default function PaymentGatewaySettings() {
           </Grid>
 
           {/* Saved Details */}
-          <Grid item xs={12} lg={5}>
+          <Grid size={{ xs: 12, lg: 5 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>

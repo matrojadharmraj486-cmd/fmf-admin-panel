@@ -430,7 +430,7 @@ export default function Users() {
           {activeTab === 0 ? (
             detailLoading ? <Loader /> : (
               <Grid container spacing={4}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <InfoCard title="Profile">
                     <InfoRow label="User ID" value={selectedUser?._id} />
                     <InfoRow label="Name" value={selectedUser?.fullName} />
@@ -439,10 +439,10 @@ export default function Users() {
                     <InfoRow label="Verified" value={pickBool(selectedUser, ['isVerified', 'verified']) ? 'Yes' : 'No'} />
                   </InfoCard>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <InfoCard title="Address">{renderAddressRows(selectedUser)}</InfoCard>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <InfoCard title="Status">
                     <InfoRow label="Blocked" value={selectedUser?.blocked ? 'Yes' : 'No'} />
                     <InfoRow label="Subscription" value={<SubscriptionStatus user={selectedUser} />} />
@@ -450,7 +450,7 @@ export default function Users() {
                     <InfoRow label="Updated" value={formatDate(selectedUser?.updatedAt || selectedUser?.updated_at)} />
                   </InfoCard>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <InfoCard title="Other">{renderOtherRows(selectedUser)}</InfoCard>
                 </Grid>
               </Grid>
@@ -520,16 +520,16 @@ export default function Users() {
           {editLoading ? <Loader /> : (
             <Box sx={{ pt: 1 }}>
               <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <TextField label="Full Name" fullWidth size="small" value={editForm.fullName} onChange={(e) => setEditForm((s) => ({ ...s, fullName: e.target.value }))} />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <TextField label="Email" fullWidth size="small" value={editForm.email} onChange={(e) => setEditForm((s) => ({ ...s, email: e.target.value }))} />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <TextField label="Mobile Number" fullWidth size="small" value={editForm.mobileNumber} onChange={(e) => setEditForm((s) => ({ ...s, mobileNumber: e.target.value }))} />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Is Verified</InputLabel>
                     <Select label="Is Verified" value={editForm.isVerified ? 'true' : 'false'} onChange={(e) => setEditForm((s) => ({ ...s, isVerified: e.target.value === 'true' }))}>
@@ -543,12 +543,12 @@ export default function Users() {
               <Divider sx={{ my: 3 }} />
               <Typography variant="subtitle2" fontWeight={600} mb={2}>Address</Typography>
               <Grid container spacing={3}>
-                <Grid item xs={12} md={6}><TextField label="Address Line 1" fullWidth size="small" value={editForm.addressLine1} onChange={(e) => setEditForm((s) => ({ ...s, addressLine1: e.target.value }))} /></Grid>
-                <Grid item xs={12} md={6}><TextField label="Address Line 2" fullWidth size="small" value={editForm.addressLine2} onChange={(e) => setEditForm((s) => ({ ...s, addressLine2: e.target.value }))} /></Grid>
-                <Grid item xs={12} md={4}><TextField label="City" fullWidth size="small" value={editForm.city} onChange={(e) => setEditForm((s) => ({ ...s, city: e.target.value }))} /></Grid>
-                <Grid item xs={12} md={4}><TextField label="State" fullWidth size="small" value={editForm.state} onChange={(e) => setEditForm((s) => ({ ...s, state: e.target.value }))} /></Grid>
-                <Grid item xs={12} md={4}><TextField label="Country" fullWidth size="small" value={editForm.country} onChange={(e) => setEditForm((s) => ({ ...s, country: e.target.value }))} /></Grid>
-                <Grid item xs={12} md={6}><TextField label="Pincode" fullWidth size="small" value={editForm.pincode} onChange={(e) => setEditForm((s) => ({ ...s, pincode: e.target.value }))} /></Grid>
+                <Grid size={{ xs: 12, md: 6 }}><TextField label="Address Line 1" fullWidth size="small" value={editForm.addressLine1} onChange={(e) => setEditForm((s) => ({ ...s, addressLine1: e.target.value }))} /></Grid>
+                <Grid size={{ xs: 12, md: 6 }}><TextField label="Address Line 2" fullWidth size="small" value={editForm.addressLine2} onChange={(e) => setEditForm((s) => ({ ...s, addressLine2: e.target.value }))} /></Grid>
+                <Grid size={{ xs: 12, md: 4 }}><TextField label="City" fullWidth size="small" value={editForm.city} onChange={(e) => setEditForm((s) => ({ ...s, city: e.target.value }))} /></Grid>
+                <Grid size={{ xs: 12, md: 4 }}><TextField label="State" fullWidth size="small" value={editForm.state} onChange={(e) => setEditForm((s) => ({ ...s, state: e.target.value }))} /></Grid>
+                <Grid size={{ xs: 12, md: 4 }}><TextField label="Country" fullWidth size="small" value={editForm.country} onChange={(e) => setEditForm((s) => ({ ...s, country: e.target.value }))} /></Grid>
+                <Grid size={{ xs: 12, md: 6 }}><TextField label="Pincode" fullWidth size="small" value={editForm.pincode} onChange={(e) => setEditForm((s) => ({ ...s, pincode: e.target.value }))} /></Grid>
               </Grid>
             </Box>
           )}

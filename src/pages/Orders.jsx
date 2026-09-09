@@ -300,7 +300,7 @@ function OrderDetailsView({ order }) {
   )
   return (
     <Grid container spacing={3} sx={{ pt: 1 }}>
-      <Grid item xs={12} md={6}>
+      <Grid size={{ xs: 12, md: 6 }}>
         <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
           <Typography variant="caption" fontWeight={600} color="text.secondary" textTransform="uppercase">Order Information</Typography>
           <Box sx={{ mt: 2 }}>
@@ -311,7 +311,7 @@ function OrderDetailsView({ order }) {
           </Box>
         </Paper>
       </Grid>
-      <Grid item xs={12} md={6}>
+      <Grid size={{ xs: 12, md: 6 }}>
         <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
           <Typography variant="caption" fontWeight={600} color="text.secondary" textTransform="uppercase">Amount</Typography>
           <Box sx={{ mt: 2 }}>

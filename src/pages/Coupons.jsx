@@ -130,7 +130,7 @@ export default function Coupons() {
           </Typography>
           <Box component="form" onSubmit={submit}>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} xl={2.4}>
+              <Grid size={{ xs: 12, sm: 6, xl: 2.4 }}>
                 <TextField
                   label="Coupon Code"
                   value={form.code}
@@ -141,7 +141,7 @@ export default function Coupons() {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6} xl={2.4}>
+              <Grid size={{ xs: 12, sm: 6, xl: 2.4 }}>
                 <FormControl size="small" fullWidth>
                   <InputLabel>Status</InputLabel>
                   <Select
@@ -155,7 +155,7 @@ export default function Coupons() {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} sm={6} xl={2.4}>
+              <Grid size={{ xs: 12, sm: 6, xl: 2.4 }}>
                 <FormControl size="small" fullWidth>
                   <InputLabel>Discount Type</InputLabel>
                   <Select
@@ -170,7 +170,7 @@ export default function Coupons() {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} sm={6} xl={2.4}>
+              <Grid size={{ xs: 12, sm: 6, xl: 2.4 }}>
                 <TextField
                   label={form.discountType === 'percentage' ? 'Discount %' : 'Discount Amount'}
                   type="number"
@@ -186,7 +186,7 @@ export default function Coupons() {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6} xl={2.4}>
+              <Grid size={{ xs: 12, sm: 6, xl: 2.4 }}>
                 <Button
                   type="submit"
                   variant="contained"
@@ -199,7 +199,7 @@ export default function Coupons() {
                 </Button>
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   label="Discount Description"
                   value={form.description}

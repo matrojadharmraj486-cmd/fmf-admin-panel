@@ -100,12 +100,12 @@ export default function Qotd() {
         <CardContent>
           <Box component="form" onSubmit={submit}>
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Question</Typography>
                 <RichEditor value={form.question} onChange={(html) => setForm((s) => ({ ...s, question: html }))} />
               </Grid>
 
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Answer Type</InputLabel>
                   <Select
@@ -120,12 +120,12 @@ export default function Qotd() {
               </Grid>
 
               {form.answerType === 'text' ? (
-                <Grid item xs={12} md={9}>
+                <Grid size={{ xs: 12, md: 9 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Answer</Typography>
                   <RichEditor value={form.answerHtml} onChange={(html) => setForm((s) => ({ ...s, answerHtml: html }))} />
                 </Grid>
               ) : (
-                <Grid item xs={12} md={9}>
+                <Grid size={{ xs: 12, md: 9 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Answer Image</Typography>
                   <input
                     type="file"
@@ -137,7 +137,7 @@ export default function Qotd() {
                 </Grid>
               )}
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Button
                   type="submit"
                   variant="contained"

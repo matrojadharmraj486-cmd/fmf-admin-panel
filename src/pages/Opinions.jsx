@@ -197,7 +197,7 @@ export default function Opinions() {
         </Card>
       ) : (
         <>
-          <Card>
+          <Card sx={{ display: { xs: 'none', lg: 'block' } }}>
             <TableContainer>
               <Table size="small">
                 <TableHead>

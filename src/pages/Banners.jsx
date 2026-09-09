@@ -446,7 +446,7 @@ export default function Banners() {
       ) : (
         <Grid container spacing={2}>
           {items.map((b) => (
-            <Grid item key={b._id} xs={12} sm={6} md={4} lg={3}>
+            <Grid key={b._id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
               <Card sx={{ overflow: "hidden" }}>
                 <Box
                   component="img"

@@ -82,7 +82,7 @@ export default function Questions() {
         <CardContent>
           <Box component="form" onSubmit={add}>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -94,7 +94,7 @@ export default function Questions() {
                 />
               </Grid>
 
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small" required>
                   <InputLabel>Year</InputLabel>
                   <Select
@@ -118,7 +118,7 @@ export default function Questions() {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Part</InputLabel>
                   <Select
@@ -132,7 +132,7 @@ export default function Questions() {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Answer Type</InputLabel>
                   <Select
@@ -147,7 +147,7 @@ export default function Questions() {
               </Grid>
 
               {form.answerType === 'text' ? (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     size="small"
@@ -161,7 +161,7 @@ export default function Questions() {
                   />
                 </Grid>
               ) : (
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Box>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                       Answer Image
@@ -177,7 +177,7 @@ export default function Questions() {
                 </Grid>
               )}
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Button
                   type="submit"
                   variant="contained"

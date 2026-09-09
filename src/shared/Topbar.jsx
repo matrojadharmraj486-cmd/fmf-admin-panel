@@ -5,11 +5,13 @@ import {
 import { Icon } from '@iconify/react'
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { AccountSettingsDialog } from './AccountSettingsDialog.jsx'
 
 export function Topbar({ onMenuToggle, toggleMode, mode }) {
   const { user, logout } = useAuth()
   const theme = useTheme()
   const [anchorEl, setAnchorEl] = useState(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -116,6 +118,13 @@ export function Topbar({ onMenuToggle, toggleMode, mode }) {
           </Box>
           <Divider sx={{ my: 0.5 }} />
           <MenuItem
+            onClick={() => { setAnchorEl(null); setSettingsOpen(true) }}
+            sx={{ gap: 1.5 }}
+          >
+            <Icon icon="mdi:cog-outline" fontSize={18} />
+            <Typography variant="body2" fontWeight={500}>Account Settings</Typography>
+          </MenuItem>
+          <MenuItem
             onClick={() => { setAnchorEl(null); logout() }}
             sx={{ color: 'error.main', gap: 1.5 }}
           >
@@ -123,6 +132,8 @@ export function Topbar({ onMenuToggle, toggleMode, mode }) {
             <Typography variant="body2" fontWeight={500}>Logout</Typography>
           </MenuItem>
         </Menu>
+
+        <AccountSettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       </Toolbar>
     </AppBar>
   )

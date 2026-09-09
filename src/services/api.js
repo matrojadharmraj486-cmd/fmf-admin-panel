@@ -30,6 +30,16 @@ export const loginAdmin = async (email, password) => {
   return data
 }
 
+// Admin account (self-service)
+export const changeAdminPassword = async ({ currentPassword, newPassword }) => {
+  const { data } = await api.patch('/api/admin/auth/change-password', { currentPassword, newPassword })
+  return data
+}
+export const changeAdminEmail = async ({ currentPassword, newEmail }) => {
+  const { data } = await api.patch('/api/admin/auth/change-email', { currentPassword, newEmail })
+  return data
+}
+
 // Dashboard
 export const getAdminStats = async () => {
   const { data } = await api.get('/admin/stats')
